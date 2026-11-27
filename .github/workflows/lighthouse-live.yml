@@ -4,6 +4,8 @@ name: Lighthouse on the live site
 # Lighthouse 13.6 (mobile, simulated slow 4G and a 4x slower CPU), five runs a page; the median is the result, as
 # Lighthouse's own guidance on variability advises (a shared runner's CPU makes single runs swing by several times), and
 # the worst run is reported beside it. Run by hand after a release; it reads the public site only.
+# R14: privacy, terms and the 404 page are measured too, and a second pass loads each page under real throttling
+# (DevTools: the network and the CPU slowed while the page loads, not simulated after), three runs a page.
 on:
   workflow_dispatch:
 
@@ -23,7 +25,7 @@ jobs:
           SITE: https://lingxi.knole.me
         run: |
           set -u
-          for p in index.html play.html verify.html numbers.html tree.html agents.html handheld.html circuits.html; do
+          for p in index.html play.html verify.html numbers.html tree.html agents.html handheld.html circuits.html privacy.html terms.html 404.html; do
             for r in 1 2 3 4 5; do
               npx -y lighthouse@13.6.0 "$SITE/$p" --quiet --only-categories=performance --output=json --output-path="lh-$p-$r.json" \
                 --chrome-flags="--headless=new --no-sandbox" > /dev/null 2>&1 || echo "$p run $r: Lighthouse did not finish"
@@ -31,6 +33,25 @@ jobs:
             node -e '
               const fs = require("fs"); const p = process.argv[1];
               const rows = [1, 2, 3, 4, 5].map((r) => `lh-${p}-${r}.json`).filter((f) => fs.existsSync(f)).map((f) => JSON.parse(fs.readFileSync(f, "utf8")))
+                .filter((d) => d.categories.performance.score !== null).map((d) => ({ s: Math.round(d.categories.performance.score * 100), a: d.audits }));
+              if (!rows.length) { console.log(`${p.padEnd(14)} no run finished`); process.exit(0); }
+              const med = (xs) => { const v = [...xs].sort((x, y) => x - y); return v[Math.floor((v.length - 1) / 2)]; };
+              const m = (k) => Math.round(med(rows.map((r) => r.a[k].numericValue)));
+              const w = (k) => Math.round(Math.max(...rows.map((r) => r.a[k].numericValue)));
+              const cls = (f) => f(rows.map((r) => r.a["cumulative-layout-shift"].numericValue)).toFixed(3);
+              console.log(`${p.padEnd(14)} ${rows.length} runs  scores ${rows.map((r) => r.s).join("/")}  median: score ${med(rows.map((r) => r.s))} FCP ${m("first-contentful-paint")} ms TBT ${m("total-blocking-time")} ms CLS ${cls(med)} TTI ${m("interactive")} ms  worst: score ${Math.min(...rows.map((r) => r.s))} TBT ${w("total-blocking-time")} ms`);
+            ' "$p" | tee -a summary.txt
+          done
+          echo "" | tee -a summary.txt
+          echo "Under DevTools throttling (three runs a page):" | tee -a summary.txt
+          for p in index.html play.html verify.html numbers.html tree.html agents.html handheld.html circuits.html privacy.html terms.html 404.html; do
+            for r in 1 2 3; do
+              npx -y lighthouse@13.6.0 "$SITE/$p" --quiet --only-categories=performance --output=json --output-path="lh-dt-$p-$r.json" --throttling-method=devtools \
+                --chrome-flags="--headless=new --no-sandbox" > /dev/null 2>&1 || echo "$p throttled run $r: Lighthouse did not finish"
+            done
+            node -e '
+              const fs = require("fs"); const p = process.argv[1];
+              const rows = [1, 2, 3].map((r) => `lh-dt-${p}-${r}.json`).filter((f) => fs.existsSync(f)).map((f) => JSON.parse(fs.readFileSync(f, "utf8")))
                 .filter((d) => d.categories.performance.score !== null).map((d) => ({ s: Math.round(d.categories.performance.score * 100), a: d.audits }));
               if (!rows.length) { console.log(`${p.padEnd(14)} no run finished`); process.exit(0); }
               const med = (xs) => { const v = [...xs].sort((x, y) => x - y); return v[Math.floor((v.length - 1) / 2)]; };
