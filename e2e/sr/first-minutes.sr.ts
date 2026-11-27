@@ -23,6 +23,8 @@ import { expect, type Page } from "@playwright/test";
 type Nvda = Parameters<Parameters<typeof test>[2]>[0]["nvda"];
 
 const URL = process.env.LINGXI_SR_URL ?? "https://lingxi.knole.me";
+/** How many times the knowledge card is tried when NVDA meets it with silence. */
+const CARD_TRIES = 3;
 
 /** A role NVDA speaks for a control; a phrase that is only roles names nothing. */
 const ROLES =
@@ -107,6 +109,7 @@ for (const look of [
       const notes: Record<string, string> = {};
       const shown = { food: "", rule: "" };
       let afterHatch = "";
+      let cardTries = 0;
 
       try {
         // hatch: an egg, an instinct, a name typed through NVDA, and the hatch button
@@ -166,9 +169,22 @@ for (const look of [
         shown.rule = ((await page.locator(".mindcard .rules li .sr-only").first().textContent()) ?? "").trim();
         await tabTo(nvda, page, ".mindcard .pad");
         // NVDA reads a page in its browse mode; after a radio button or a text box it may be in focus mode, where the
-        // arrow keys go to the page instead. A player reading a card switches to browse mode (NVDA+Space), as here.
-        await nvda.perform(NVDAKeyCodeCommands.exitFocusMode);
-        for (let i = 0; i < 4; i++) await nvda.next();
+        // arrow keys go to the page instead (Escape leaves it). The room is never still (its clock, its notices), and
+        // NVDA keeps its own copy of the page up to date as it changes: keys pressed straight after the Tab found that
+        // copy mid-update in four runs of six and were met with silence. So it is given two seconds to settle, as a
+        // player's pause would, and a card met with silence is tabbed away from and back to, up to three tries; how
+        // many it took is kept with the run, so a card that needs more than one is seen.
+        for (let attempt = 1; attempt <= CARD_TRIES; attempt++) {
+          await page.waitForTimeout(2_000);
+          await nvda.perform(NVDAKeyCodeCommands.exitFocusMode);
+          const before = (await nvda.spokenPhraseLog()).length;
+          for (let i = 0; i < 4; i++) await nvda.next();
+          const read = (await nvda.spokenPhraseLog()).slice(before).join(" ");
+          cardTries = attempt;
+          if (bare(read).includes(bare(shown.rule))) break;
+          await nvda.press("Shift+Tab");
+          await tabTo(nvda, page, ".mindcard .pad");
+        }
         for (const tab of ["me", "mind"]) {
           await tabTo(nvda, page, `.tab[data-hint=tab-${tab}]`);
           await nvda.press("Enter");
@@ -209,14 +225,18 @@ for (const look of [
       // a food's button says which food; a rule is read as a sentence; a toggle has one name
       expect(shown.food, "the bag's button names its food").toMatch(look.lang === "zh" ? /^喂食：\S/ : /^Feed: \S/);
       expect(heard, `the food's button was heard by its name: ${shown.food}`).toContain(bare(shown.food));
-      expect(shown.rule, "a rule has its sentence").not.toBe("");
-      expect(heard, `the rule was heard as its sentence: ${shown.rule}`).toContain(bare(shown.rule));
       expect(heard, "the sound toggle has one name").toContain(bare(t("Sound, toggle button", "声音, toggle button")));
       expect(heard).not.toMatch(/Sound(on|off)togglebutton|声音(开|关)/);
       expect(said, "the egg's tick is not read").not.toMatch(/\bcheck, radio button/);
       // A dialog is said twice by NVDA itself ("Bag, dialog. Close, button. Bag, dialog. button, Close": the focus,
       // then the dialog's own words): the plain page below says its dialog the same way, so it is not checked here.
       expect(errors, "console errors").toEqual([]);
+      // last, so every check above is judged whatever this one finds
+      writeFileSync(test.info().outputPath(`card-tries-${look.lang}.txt`), `${cardTries}\n`, "utf8");
+      expect(shown.rule, "a rule has its sentence").not.toBe("");
+      expect(heard, `the rule was heard as its sentence (${cardTries} tries): ${shown.rule}`).toContain(
+        bare(shown.rule),
+      );
     });
   });
 }
