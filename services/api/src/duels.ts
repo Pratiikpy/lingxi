@@ -15,12 +15,20 @@ import { clientIp } from "./clientIp";
 import { PREFIX_SHARE, RateLimiter, prefixOf } from "./limit";
 import { writeFlushed } from "./durable";
 import { pseudonym } from "./pseudonym";
+import { own } from "./own";
 
 /** How many codes are kept, and how many characters in all; past either, those nobody has opened for longest go first. */
 const MAX_KEPT = 50_000;
 const MAX_KEPT_CHARS = 200_000_000;
 /** The characters of new links one address may store in a day: about twenty of the largest results (A51). */
 export const PER_ADDRESS_DAY_CHARS = 4_000_000;
+/**
+ * The callers (addresses, and IPv6 /48s) the day's map keeps its own count for (P10); past them, a newcomer's characters
+ * count in one count shared by every newcomer, "(others)", held to one address's day. A crowd of addresses cannot grow
+ * the map, and none gets an allowance of its own by coming once it is full.
+ */
+export const MAX_SPENDERS = 20_000;
+const OTHERS = "(others)";
 /** A link's file time is moved to its last opening at most this often, so the order survives a restart. */
 const TOUCH_MS = 60_000;
 const ID = /^[A-Za-z0-9_-]{16}$/;
@@ -71,9 +79,10 @@ export function createDuelStore(
       const m = FILE.exec(name);
       if (!m) continue;
       const st = statSync(join(dir, name));
-      const by = m[2] && PLAIN.test(m[2]) ? keyedTag(m[2]) : m[2];
-      const net = m[3] && m[3] !== "-" ? (PLAIN.test(m[3]) ? keyedTag(m[3]) : m[3]) : undefined;
-      kept.set(m[1]!, { at: st.mtimeMs, size: st.size, ...(by ? { by } : {}), ...(net ? { net } : {}) });
+      const by = m[2] && PLAIN.test(m[2]) ? keyedTag(m[2]) : m[2] && own(m[2]);
+      const net = m[3] && m[3] !== "-" ? (PLAIN.test(m[3]) ? keyedTag(m[3]) : own(m[3])) : undefined;
+      // the id, cut from the file's name, as a string of its own (P10)
+      kept.set(own(m[1]!), { at: st.mtimeMs, size: st.size, ...(by ? { by } : {}), ...(net ? { net } : {}) });
       // a name from before P6a takes its keyed codes; a rename keeps the file's time, so the order survives
       if (join(dir, name) !== fileOf(m[1]!)) renameSync(join(dir, name), fileOf(m[1]!));
       chars += st.size;
@@ -119,8 +128,10 @@ export function createDuelStore(
     },
     has: (id: string) => kept.has(id),
     /** keeps `code` under `id`, made by `maker` (a caller, as clientIp names it) */
-    put: (id: string, code: string, at: number, maker?: string) => {
-      if (kept.has(id)) return;
+    put: (cut: string, code: string, at: number, maker?: string) => {
+      if (kept.has(cut)) return;
+      // the id, cut from its code's whole digest (duelLinkId), as a string of its own (P10)
+      const id = own(cut);
       const prefix = maker === undefined ? null : prefixOf(maker);
       const who: { by?: string; net?: string } =
         maker === undefined ? {} : { by: tag(maker), ...(prefix !== null ? { net: tag(prefix) } : {}) };
@@ -169,6 +180,7 @@ export function withDuels(
   limiter = new RateLimiter(30, 60_000),
   now: () => number = Date.now,
   perAddressDay = PER_ADDRESS_DAY_CHARS,
+  maxSpenders = MAX_SPENDERS,
 ): Hono {
   /** the characters each address has stored today (A51) */
   let day = "";
@@ -192,17 +204,19 @@ export function withDuels(
         day = today;
         spent.clear();
       }
-      // an address stores its day's characters, and its IPv6 /48 four addresses' worth (A123)
-      const used = spent.get(ip) ?? 0;
+      // an address stores its day's characters, and its IPv6 /48 four addresses' worth (A123); past MAX_SPENDERS
+      // callers, a newcomer counts in the one shared count, held to one address's day (P10)
+      const keyOf = (k: string) => (spent.has(k) || spent.size < maxSpenders ? k : OTHERS);
+      const me = keyOf(ip);
       const prefix = prefixOf(ip);
-      const network = prefix === null ? 0 : (spent.get(prefix) ?? 0);
-      if (
-        used + code.length > perAddressDay ||
-        (prefix !== null && network + code.length > perAddressDay * PREFIX_SHARE)
-      )
+      const net = prefix === null ? null : keyOf(prefix);
+      const used = spent.get(me) ?? 0;
+      const network = net === null || net === me ? 0 : (spent.get(net) ?? 0);
+      const netDay = net === OTHERS ? perAddressDay : perAddressDay * PREFIX_SHARE;
+      if (used + code.length > perAddressDay || (net !== null && net !== me && network + code.length > netDay))
         return c.json({ ok: false, reason: "busy" });
-      spent.set(ip, used + code.length);
-      if (prefix !== null) spent.set(prefix, network + code.length);
+      spent.set(me, used + code.length);
+      if (net !== null && net !== me) spent.set(net, network + code.length);
     }
     store.put(id, code, now(), ip);
     return c.json({ ok: true, id });
