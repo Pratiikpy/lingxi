@@ -298,6 +298,63 @@ describe("a red packet's link key is kept before its money is sent (A42)", () =>
     expect(later.s().sent).toHaveLength(0);
   });
 
+  it("a key whose transaction is still waiting for a block is kept past a day, and let go once the chain refuses it (R55)", async () => {
+    const p = await open();
+    p.x.rules.revertCreate = true;
+    // the simulation passes, the mined transaction is refused; its receipt is held, so it reads as waiting for a block
+    const sim = p.x.contracts[RED_PACKET]!.calls.create!;
+    p.x.contracts[RED_PACKET]!.calls.create = (args, c) => (c.dry ? 7n : sim(args, c));
+    p.xl.node.holdReceipts = true;
+    await settle(p.s().send(order), 1_000, 400);
+    expect(p.s().pending).toHaveLength(1);
+    const later = await open({ storage: p.storage, chain: p.x, xl: p.xl, at: T0 + 25 * 3_600_000 });
+    const { clock } = await import("./gameClock");
+    expect(await settle(clock.sync())).toBe(true);
+    await settle(later.s().recover());
+    expect(later.s().pending, "a day on, its transaction can still be mined: the key stays").toHaveLength(1);
+    const kept = JSON.parse(later.storage.getItem(PENDING)!) as Array<{ nonce?: number }>;
+    expect(kept[0]!.nonce, "with the nonce it was sent at").toBeTypeOf("number");
+    later.xl.node.holdReceipts = false;
+    await settle(later.s().recover());
+    expect(later.s().pending).toHaveLength(0);
+    expect(later.s().error).toBe("packetFailed");
+  });
+
+  it("a key whose transaction X Layer does not know is let go once its nonce is taken, and kept while it is not (R55)", async () => {
+    const p = await open();
+    // one packet sent and made, so the sender's next nonce is past 0
+    await settle(p.s().send(order), 1_000, 400);
+    expect(p.s().sent).toHaveLength(1);
+    const pk = "0x59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d" as const;
+    const stray = (nonce: number, key: string) => ({
+      key,
+      keyAddress: privateKeyToAccount(`0x${key}`).address,
+      fromId: "7",
+      sender: SENDER,
+      total: "5",
+      count: 2,
+      from: order.from,
+      letter: "",
+      origin: order.origin,
+      at: T0,
+      tx: `0x${"ab".repeat(32)}`,
+      nonce,
+    });
+    p.storage.setItem(
+      PENDING,
+      JSON.stringify([
+        stray(0, pk.slice(2)),
+        stray(5, "7c852118294e51e653712a81e05800f419141751be58f605c371e15141b007a6"),
+      ]),
+    );
+    const again = await open({ storage: p.storage, chain: p.x, xl: p.xl });
+    await settle(again.s().recover());
+    // within the day: the one whose nonce another transaction took can never be mined; the other might still be
+    expect(again.s().pending.map((x) => x.key)).toEqual([
+      "7c852118294e51e653712a81e05800f419141751be58f605c371e15141b007a6",
+    ]);
+  });
+
   it("a packet the wallet refused keeps no key and says it did not go through", async () => {
     const p = await open();
     p.wallet.approves = false;

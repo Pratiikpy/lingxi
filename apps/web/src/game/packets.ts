@@ -7,7 +7,14 @@
 
 import { create } from "zustand";
 import { NAME_MAX, takeVisible } from "@lingxi/game";
-import { type Address, type Hex, formatUnits, parseUnits, TransactionReceiptNotFoundError } from "viem";
+import {
+  type Address,
+  type Hex,
+  formatUnits,
+  parseUnits,
+  TransactionNotFoundError,
+  TransactionReceiptNotFoundError,
+} from "viem";
 import { viem } from "./chainClient";
 import {
   type ClaimView,
@@ -40,7 +47,10 @@ const SENT_KEY = "lingxi.packets.sent.v1";
  * since) and moved to the sent list with its link; one refused on chain, or never found, is let go.
  */
 const PENDING_KEY = "lingxi.packets.pending.v1";
-/** A kept key no packet on X Layer carries after this long was never sent (the wallet dropped it, or it never left). */
+/**
+ * A kept key no packet on X Layer carries after this long, whose transaction X Layer has never told of, was never sent
+ * (the wallet dropped it, or it never left). A transaction X Layer knows is waited for however long it takes (R55).
+ */
 const PENDING_FORGET_MS = 24 * 3_600_000;
 /** How many packets made since a key was kept are looked through for it. */
 const SCAN_LIMIT = 256;
@@ -106,6 +116,8 @@ export interface PendingPacket {
   at: number;
   /** the transaction the wallet sent it in, once known */
   tx?: Hex;
+  /** that transaction's nonce, once X Layer has told of it: a block with this nonce taken by another ends its hope (R55) */
+  nonce?: number;
 }
 
 function loadPending(): PendingPacket[] {
@@ -186,6 +198,33 @@ export const usePackets = create<PacketStore>((set, get) => {
     letGo(p);
     return link;
   };
+  /**
+   * R55: whether a kept key's transaction can still reach a block. One X Layer knows and has not put in a block can, and
+   * its nonce is kept; one it does not know cannot once a block holds another transaction of the sender's with that
+   * nonce. One it has never told of is let go after PENDING_FORGET_MS, as before (A82: only on X Layer's answer).
+   */
+  const mayStillBeMined = async (p: PendingPacket, hash: Hex): Promise<boolean> => {
+    const tx = await publicClient
+      .getTransaction({ hash })
+      .catch((e: unknown) => (e instanceof TransactionNotFoundError ? null : Promise.reject(e)));
+    if (tx) {
+      if (p.nonce === undefined) remember(p, { nonce: tx.nonce });
+      return true;
+    }
+    if (p.nonce !== undefined) {
+      const next = await publicClient.getTransactionCount({ address: p.sender as Address, blockTag: "latest" });
+      return next <= p.nonce;
+    }
+    return now() - p.at <= PENDING_FORGET_MS;
+  };
+  /** Keeps what was learnt about a kept key (its transaction's nonce) with it. */
+  const remember = (p: PendingPacket, patch: Partial<PendingPacket>) => {
+    try {
+      keepPending(get().pending.map((x) => (x.key === p.key ? { ...x, ...patch } : x)));
+    } catch {
+      // learnt again on the next look, from X Layer
+    }
+  };
   const letGo = (p: PendingPacket) => {
     try {
       keepPending(get().pending.filter((x) => x.key !== p.key));
@@ -234,8 +273,12 @@ export const usePackets = create<PacketStore>((set, get) => {
             continue;
           }
           const id = await byKey(p);
-          if (id !== null) found(p, id);
-          else if (now() - p.at > PENDING_FORGET_MS) letGo(p);
+          if (id !== null) {
+            found(p, id);
+            continue;
+          }
+          if (p.tx && !(await mayStillBeMined(p, p.tx))) letGo(p);
+          else if (!p.tx && now() - p.at > PENDING_FORGET_MS) letGo(p);
         } catch {
           // the node did not answer: asked again next time
         }
