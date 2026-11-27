@@ -3,10 +3,10 @@
  * 34,000 characters), and 31 rounds held 49 MB at the cap. Each card is now also a file of its own, named by its digest,
  * read when a pick serves it (a few recent ones held); the round's file keeps its lines whole as before, cards and all.
  */
-import { mkdtempSync, readFileSync, readdirSync } from "node:fs";
+import { mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { compileProgram, netlistBytes, validateProgram } from "@lingxi/brain";
 import { canonicalCard, petCard } from "@lingxi/game";
 import { createArenaStore } from "../src/arena";
@@ -105,5 +105,50 @@ describe("an arena line's card kept on disk (P10)", () => {
     // two lines with one card share its file
     expect(store.save(2, pet("C", 3), [], "device-c-xxxxxx", ip(3)).ok).toBe(true);
     expect(cards()).toHaveLength(2);
+  });
+});
+
+describe("an arena card that cannot be read or written loses no line (P10)", () => {
+  const quiet = () => vi.spyOn(process.stderr, "write").mockImplementation(() => true);
+
+  it("starts, and serves every card, when the card folder cannot be made", async () => {
+    const file = fileIn();
+    const a = createArenaStore(file, Date.now, { every: 0 });
+    for (let i = 0; i < 3; i++) expect(a.save(5, pet(`Pet${i}`, i), [], `device-${i}-xxxxxx`, ip(i)).ok).toBe(true);
+    await a.flush();
+    // a file stands where the card folder would be, as a disk that refuses writes would leave it
+    rmSync(join(`${file}.d`, "cards"), { recursive: true });
+    writeFileSync(join(`${file}.d`, "cards"), "");
+    const spy = quiet();
+    try {
+      const b = createArenaStore(file, Date.now, { every: 0 });
+      for (let k = 0; k < 3; k++)
+        expect(b.pick(5, "someone-else-0000", k / 3)?.pet.card).toBe(canonicalCard(bigCard(k)));
+    } finally {
+      spy.mockRestore();
+    }
+  });
+
+  it("never writes a round short of a line, or with a damaged card: the card is mended from the round's file", async () => {
+    const file = fileIn();
+    const a = createArenaStore(file, Date.now, { every: 0 });
+    for (let i = 0; i < 2; i++) expect(a.save(4, pet(`Pet${i}`, i), [], `device-${i}-xxxxxx`, ip(i)).ok).toBe(true);
+    await a.flush();
+    const cardsDir = join(`${file}.d`, "cards");
+    for (const n of readdirSync(cardsDir)) writeFileSync(join(cardsDir, n), "{cut");
+    const spy = quiet();
+    try {
+      expect(a.save(4, pet("Pet2", 2), [], "device-2-xxxxxx", ip(2)).ok).toBe(true);
+      await a.flush();
+      expect(a.pick(4, "someone-else-0000", 0)?.pet.card, "a damaged card is not served").not.toBe("{cut");
+    } finally {
+      spy.mockRestore();
+    }
+    const round = () =>
+      JSON.parse(readFileSync(join(`${file}.d`, "4.json"), "utf8")) as Array<{ pet: { card: string } }>;
+    // the damaged cards were mended from the round's own file, and the round written whole with the new line
+    expect(round().map((l) => l.pet.card)).toEqual([0, 1, 2].map((i) => canonicalCard(bigCard(i))));
+    const b = createArenaStore(file, Date.now, { every: 0 });
+    for (let k = 0; k < 3; k++) expect(b.pick(4, "someone-else-0000", k / 3)?.pet.card).toBe(canonicalCard(bigCard(k)));
   });
 });

@@ -10,7 +10,7 @@
  */
 
 import { createHash } from "node:crypto";
-import { existsSync, mkdirSync, readFileSync, readdirSync, renameSync, rmSync } from "node:fs";
+import { mkdirSync, readFileSync, readdirSync, renameSync, rmSync, statSync } from "node:fs";
 import { writeFlushed } from "./durable";
 import { COMPANION, MAX_COMPANIONS, type DuelPet, duelFighter, canonicalCard, shownName } from "@lingxi/game";
 import { openShards } from "./shards";
@@ -107,12 +107,25 @@ const CARDS_HELD = 16;
  * own files keep their lines whole, cards and all, as before: the card files are made from them again at a start.
  * Without a folder (tests), every card is held in memory as before.
  */
-function cardShelf(dir: string | null) {
+function cardShelf(want: string | null) {
   const refs = new Map<string, number>();
+  /** cards held whole: every card with no folder, and with one, any card its file could not be written for */
   const all = new Map<string, string>();
   const recent = new Map<string, string>();
+  /** a folder that cannot be made leaves every card in memory, as with none: the arena still starts (P10) */
+  const dir = ((): string | null => {
+    if (!want) return null;
+    try {
+      mkdirSync(want, { recursive: true });
+      return want;
+    } catch (e) {
+      process.stderr.write(`arena cards held in memory: ${(e as Error).message}
+`);
+      return null;
+    }
+  })();
   const path = (id: string) => join(dir ?? "", `${id}.card`);
-  if (dir) mkdirSync(dir, { recursive: true });
+  const idOf = (text: string) => createHash("sha256").update(text).digest().subarray(0, 16).toString("hex");
   const hold = (id: string, text: string) => {
     recent.delete(id);
     recent.set(id, text);
@@ -121,23 +134,33 @@ function cardShelf(dir: string | null) {
       recent.delete(old);
     }
   };
+  /** writes a card's file; one that cannot be written is held in memory instead, and said so */
+  const write = (id: string, text: string) => {
+    try {
+      writeFlushed(`${path(id)}.tmp`, text);
+      renameSync(`${path(id)}.tmp`, path(id));
+    } catch (e) {
+      rmSync(`${path(id)}.tmp`, { force: true });
+      process.stderr.write(`arena card ${id} held in memory: ${(e as Error).message}
+`);
+      all.set(id, text);
+    }
+  };
   return {
     /** keeps `text` for one more line, and says its digest */
     put(text: string): string {
-      const id = createHash("sha256").update(text).digest().subarray(0, 16).toString("hex");
+      const id = idOf(text);
       const n = refs.get(id) ?? 0;
       if (n === 0) {
         if (!dir) all.set(id, text);
-        else if (!existsSync(path(id))) {
-          writeFlushed(`${path(id)}.tmp`, text);
-          renameSync(`${path(id)}.tmp`, path(id));
-        }
+        // a file of another size than its card (cut short) is written again
+        else if (statSync(path(id), { throwIfNoEntry: false })?.size !== Buffer.byteLength(text)) write(id, text);
       }
       refs.set(id, n + 1);
       if (dir) hold(id, text);
       return id;
     },
-    /** the card under `id`, or null when it is not kept (its file gone) */
+    /** the card under `id`, or null when it is not kept: its file gone, or not the card it is named for */
     get(id: string): string | null {
       const kept = all.get(id) ?? recent.get(id);
       if (kept !== undefined) {
@@ -147,12 +170,23 @@ function cardShelf(dir: string | null) {
       if (!dir || !refs.has(id)) return null;
       try {
         const text = readFileSync(path(id), "utf8");
+        if (idOf(text) !== id) throw new Error("not the card it is named for");
         hold(id, text);
         return text;
-      } catch {
-        // a card file removed by hand: the line cannot be served until a start makes the file again from its round
+      } catch (e) {
+        process.stderr.write(`arena card ${id} not read: ${(e as Error).message}
+`);
         return null;
       }
+    },
+    /** writes again the file of a card a line still holds, from a copy found elsewhere (its round's file) */
+    mend(id: string, text: string): boolean {
+      if (!refs.has(id) || idOf(text) !== id) return false;
+      if (dir) {
+        write(id, text);
+        hold(id, text);
+      } else all.set(id, text);
+      return true;
     },
     /** one line less holds `id`; the card goes once none does */
     release(id: string): void {
@@ -166,12 +200,13 @@ function cardShelf(dir: string | null) {
       recent.delete(id);
       if (dir) rmSync(path(id), { force: true });
     },
-    /** at a start, every card file no line holds goes */
+    /** at a start, every card file no line holds goes: each is a copy of a card its round's file keeps whole */
     sweep(): void {
       if (!dir) return;
-      for (const name of readdirSync(dir)) {
-        const id = name.replace(/\.card(\.tmp)?$/, "");
-        if (name.endsWith(".tmp") || !refs.has(id)) rmSync(join(dir, name), { force: true });
+      for (const d of readdirSync(dir, { withFileTypes: true })) {
+        if (!d.isFile()) continue;
+        const id = d.name.replace(/.card(.tmp)?$/, "");
+        if (d.name.endsWith(".tmp") || !refs.has(id)) rmSync(join(dir, d.name), { force: true });
       }
     },
   };
@@ -197,7 +232,33 @@ export function createArenaStore(
     const { card: _card, ...rest } = l;
     return { ...rest, pet: { ...l.pet, card } };
   };
-  const whole = (n: number): Snapshot[] => (rounds.get(n) ?? []).flatMap((l) => toSnapshot(l) ?? []);
+  /**
+   * a round whole, each card read from the shelf; a card not there is mended from the round's own file, and when it
+   * cannot be, null: a round is never written short of a line (P10)
+   */
+  const whole = (n: number): Snapshot[] | null => {
+    let kept: Snapshot[] | null = null;
+    const out: Snapshot[] = [];
+    for (const l of rounds.get(n) ?? []) {
+      let s = toSnapshot(l);
+      if (!s) {
+        kept ??= ((shards?.read(String(n)) as Snapshot[] | null) ?? []).filter((k) => typeof k?.pet?.card === "string");
+        const was = kept.find((k) => k.by === l.by && k.at === l.at);
+        if (was && cards.mend(l.card, was.pet.card)) s = toSnapshot(l);
+      }
+      if (!s) return null;
+      out.push(s);
+    }
+    return out;
+  };
+  const writeRound = (n: number) => {
+    if (!shards) return;
+    const list = whole(n);
+    if (list) shards.write(String(n), list);
+    else
+      process.stderr.write(`arena round ${n}: a card cannot be read, so its file is kept as it was
+`);
+  };
   /** rounds kept before addresses were coded, whose senders' addresses are coded on load (P6a) */
   const raw = new Set<number>();
   for (const [r, list] of shards?.all() ?? []) {
@@ -216,14 +277,14 @@ export function createArenaStore(
   cards.sweep();
   if (shards && file) {
     // written twice, so the .bak each write keeps holds no address either
-    for (const n of raw) for (let i = 0; i < 2; i++) shards.write(String(n), whole(n));
+    for (const n of raw) for (let i = 0; i < 2; i++) writeRound(n);
     scrubAsides(dirname(file), basename(file));
     scrubAsides(`${file}.d`, "");
   }
   const dirty = new Set<number>();
   const save = () => {
     if (!shards) return;
-    for (const n of dirty) shards.write(String(n), whole(n));
+    for (const n of dirty) writeRound(n);
     dirty.clear();
   };
   const every = opts.every ?? 30_000;
