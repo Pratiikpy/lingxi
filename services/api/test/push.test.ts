@@ -1,4 +1,5 @@
-import { existsSync, mkdtempSync, readdirSync, writeFileSync } from "node:fs";
+import { createHash } from "node:crypto";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
@@ -222,6 +223,44 @@ describe("what a reminder needs, held in memory; the rest in its own file (P10)"
     expect(await again.tick(NOON_UTC + 4 * H)).toBe(3);
     expect(again.stop(largest(1).subscription.endpoint)).toBe(true);
     expect(readdirSync(`${store}.d`).filter((n) => n.endsWith(".json"))).toHaveLength(2);
+  });
+
+  it("a move that fails part-way keeps the old file with what is left, and loses no reminder across two starts", async () => {
+    const store = folderStore();
+    const old = [0, 1, 2, 3, 4].map((i) => ({
+      sub: largest(i).subscription,
+      lang: "en",
+      name: largest(i).name,
+      tz: 0,
+      reminders: [{ kind: "sick", at: NOON_UTC + H }],
+      lastSent: 0,
+    }));
+    writeFileSync(store, JSON.stringify(old));
+    // the third cannot be written: a folder stands where its file would go, and the write fails as a full disk's does
+    const id = (endpoint: string) => createHash("sha256").update(endpoint).digest().subarray(0, 16).toString("hex");
+    const blocked = join(`${store}.d`, `${id(largest(2).subscription.endpoint)}.json`);
+    mkdirSync(blocked, { recursive: true });
+    const first = withStore(store);
+    expect(first.size()).toBe(4);
+    expect((JSON.parse(readFileSync(store, "utf8")) as unknown[]).length, "the old file keeps what is left").toBe(1);
+    // a reminder stopped before the next start does not come back with the rest
+    expect(first.stop(largest(0).subscription.endpoint)).toBe(true);
+    rmSync(blocked, { recursive: true });
+    const sent: Array<{ endpoint: string; auth: string; title: string }> = [];
+    const second = withStore(store, sent);
+    expect(second.size()).toBe(4);
+    expect(existsSync(store)).toBe(false);
+    expect(await second.tick(NOON_UTC + H)).toBe(4);
+  });
+
+  it("leaves a subscription's file it cannot read as it is, and starts without it", () => {
+    const store = folderStore();
+    const p = withStore(store);
+    expect(p.plan(largest(1), NOON_UTC, "203.0.113.1").ok).toBe(true);
+    const [name] = readdirSync(`${store}.d`);
+    writeFileSync(join(`${store}.d`, name ?? ""), "{cut sho");
+    expect(withStore(store).size()).toBe(0);
+    expect(readFileSync(join(`${store}.d`, name ?? ""), "utf8")).toBe("{cut sho");
   });
 
   it("moves a store kept as one file into a file each, once, and keeps nothing of the old file", async () => {

@@ -14,12 +14,12 @@
  */
 
 import { createHash } from "node:crypto";
-import { existsSync, mkdirSync, readFileSync, readdirSync, renameSync, rmSync } from "node:fs";
+import { mkdirSync, readFileSync, readdirSync, renameSync, rmSync, statSync } from "node:fs";
 import { basename, dirname, join } from "node:path";
 import { CODE, type Coded, codeOf, heldOverCoded, recoded, scrubAsides } from "./pseudonym";
 import webpush from "web-push";
 import type { PushPlanBody } from "@lingxi/api-schema";
-import { hasStore, readStore, writeFlushed } from "./durable";
+import { hasStore, readStore, saveJson, writeFlushed } from "./durable";
 
 export type ReminderKind = "hungry" | "bored" | "dirty" | "sick";
 
@@ -153,18 +153,19 @@ function entryShelf(dir: string | null) {
       }
     },
     has(id: string): boolean {
-      return dir ? existsSync(path(id)) : held.has(id);
+      return dir ? (statSync(path(id), { throwIfNoEntry: false })?.isFile() ?? false) : held.has(id);
     },
     remove(id: string): void {
       held.delete(id);
       if (dir) rmSync(path(id), { force: true });
     },
-    /** the ids of the subscriptions kept, each file a write cut short let go */
+    /** the ids of the subscriptions kept; a write a crash cut short left only its temporary file, which goes */
     ids(): string[] {
       if (!dir) return [...held.keys()];
-      return readdirSync(dir).flatMap((name) => {
-        if (name.endsWith(".json")) return [name.slice(0, -5)];
-        rmSync(join(dir, name), { force: true });
+      return readdirSync(dir, { withFileTypes: true }).flatMap((d) => {
+        if (!d.isFile()) return [];
+        if (d.name.endsWith(".json")) return [d.name.slice(0, -".json".length)];
+        if (d.name.endsWith(".tmp")) rmSync(join(dir, d.name), { force: true });
         return [];
       });
     },
@@ -195,30 +196,63 @@ export function createPusher(opts: {
   };
   const ownerOf = (e: { by?: string; net?: string }) =>
     e.by !== undefined ? { by: e.by, ...(e.net !== undefined ? { net: e.net } : {}) } : {};
-  const keep = (id: string, e: Entry) => {
-    entries.put(id, e);
+  /** schedules a subscription already on disk */
+  const schedule = (id: string, e: Entry) => {
     const first = e.reminders[0];
     if (first) slots.set(id, { next: first.at, lastSent: e.lastSent, ...ownerOf(e) });
   };
+  /** writes a subscription, then schedules it */
+  const keep = (id: string, e: Entry) => {
+    entries.put(id, e);
+    schedule(id, e);
+  };
   if (opts.store && hasStore(opts.store)) {
-    // a store kept as one file before P10 is moved into a file each, once; a file written since is newer and kept
+    // a store kept as one file before P10 is moved into a file each; a file written since is newer and kept
+    let kept: Entry[] | null = null;
     try {
-      for (const e of readStore(opts.store) as Entry[]) {
+      kept = readStore(opts.store) as Entry[];
+    } catch (e) {
+      // neither the file nor its .bak could be read: readStore kept both aside and said so, and nothing is moved
+      process.stderr.write(`${opts.store}: reminders not moved: ${(e as Error).message}\n`);
+    }
+    if (kept) {
+      const left: Entry[] = [];
+      for (const e of kept) {
         if (!isPushEndpoint(e.sub.endpoint) || entries.has(idOf(e.sub.endpoint))) continue;
         // a plan kept before addresses were coded held its planner's address: it is coded now (P6a)
         const c = e.by === undefined || CODE.test(e.by) ? null : recoded(e.by);
-        entries.put(idOf(e.sub.endpoint), c ? { ...e, by: c.by, ...(c.net !== undefined ? { net: c.net } : {}) } : e);
+        const coded = c ? { ...e, by: c.by, ...(c.net !== undefined ? { net: c.net } : {}) } : e;
+        try {
+          entries.put(idOf(e.sub.endpoint), coded);
+        } catch (err) {
+          process.stderr.write(`reminder not moved: ${(err as Error).message}\n`);
+          left.push(coded);
+        }
       }
-    } catch (e) {
-      // a damaged file starts empty rather than stopping the server (readStore kept it aside and said so)
-      process.stderr.write(`${opts.store}: reminders not moved: ${(e as Error).message}\n`);
+      // the old file goes only once every reminder in it has a file of its own (or had one already)
+      if (!left.length)
+        for (const f of [opts.store, `${opts.store}.bak`, `${opts.store}.tmp`]) rmSync(f, { force: true });
+      else {
+        process.stderr.write(`${opts.store}: ${left.length} reminders not moved yet: kept for the next start\n`);
+        // it keeps only what is left, so a reminder moved and then stopped does not come back; written twice, so its
+        // .bak holds no more; if even that cannot be written, the file stays as it was and nothing is lost
+        try {
+          saveJson(opts.store, left);
+          saveJson(opts.store, left);
+        } catch (err) {
+          process.stderr.write(`${opts.store}: kept as it was: ${(err as Error).message}\n`);
+        }
+      }
     }
-    for (const f of [opts.store, `${opts.store}.bak`, `${opts.store}.tmp`]) rmSync(f, { force: true });
   }
   for (const id of entries.ids()) {
     const e = entries.get(id);
-    if (e && isPushEndpoint(e.sub.endpoint) && idOf(e.sub.endpoint) === id && e.reminders.length) keep(id, e);
-    else entries.remove(id);
+    // a file that cannot be read is left as it is, never deleted (entries.get said so), and not scheduled
+    if (!e) continue;
+    if (!isPushEndpoint(e.sub.endpoint) || !e.reminders.length) entries.remove(id);
+    else if (idOf(e.sub.endpoint) !== id)
+      process.stderr.write(`reminder ${id}: named for another endpoint, left as it is\n`);
+    else schedule(id, e);
   }
   if (opts.store) scrubAsides(dirname(opts.store), basename(opts.store));
   const send: Send =
@@ -296,8 +330,8 @@ export function createPusher(opts: {
         if (!slot || slot.next > now) continue;
         const e = entries.get(id);
         if (!e) {
-          // its file gone or cut short: nothing to send from (entries.get said so)
-          drop(id);
+          // its file gone or unreadable: nothing to send from (entries.get said so); a file is left as it is
+          slots.delete(id);
           continue;
         }
         const reached = e.reminders.filter((r) => r.at <= now);
