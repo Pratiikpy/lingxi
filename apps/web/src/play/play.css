@@ -2513,15 +2513,16 @@
 /* R40: on the dark theme the first ink (#2b2140) lay on a ground of almost its own colour (1.07:1) and its tile and
    swatch read as empty. There every colour chip (the inks, the swatches, the well) shows its colour on a mat of the
    drawing paper, as the grid shows it; an ink's chip is drawn 6 px larger there, so its colour inside the mat stays
-   18 px. The ink's own colour is never changed: it is the player's drawing */
+   18 px. The ink's own colour is never changed: it is the player's drawing. Inside the mat a hairline of plum at 45%
+   gives a white or cream colour an edge, which on the paper alone it lacked */
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) .studio {
-    --studio-mat: inset 0 0 0 3px var(--studio-paper);
+    --studio-mat: inset 0 0 0 3px var(--studio-paper), inset 0 0 0 4px rgba(43, 33, 64, 0.45);
     --studio-chip: 28px;
   }
 }
 :root[data-theme="dark"] .studio {
-  --studio-mat: inset 0 0 0 3px var(--studio-paper);
+  --studio-mat: inset 0 0 0 3px var(--studio-paper), inset 0 0 0 4px rgba(43, 33, 64, 0.45);
   --studio-chip: 28px;
 }
 .fashion > .row {
