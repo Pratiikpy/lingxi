@@ -6,14 +6,20 @@
  *
  * Only real push services are contacted (the browser's own endpoint, checked
  * against the known push hosts), so a plan can't make this server call any
- * other address. Subscriptions are kept in one JSON file.
+ * other address.
+ *
+ * P10: each subscription is kept in a file of its own, and memory holds only what scheduling needs of it (when its next
+ * reminder is due, when one was last sent, its planner's codes): 20,000 subscriptions held whole took 39 MB, and every
+ * plan rewrote all of them at once. A subscription's endpoint and keys are read from its file when a reminder is sent.
  */
 
-import { basename, dirname } from "node:path";
+import { createHash } from "node:crypto";
+import { existsSync, mkdirSync, readFileSync, readdirSync, renameSync, rmSync } from "node:fs";
+import { basename, dirname, join } from "node:path";
 import { CODE, type Coded, codeOf, heldOverCoded, recoded, scrubAsides } from "./pseudonym";
 import webpush from "web-push";
 import type { PushPlanBody } from "@lingxi/api-schema";
-import { hasStore, readStore, saveJson } from "./durable";
+import { hasStore, readStore, writeFlushed } from "./durable";
 
 export type ReminderKind = "hungry" | "bored" | "dirty" | "sick";
 
@@ -50,9 +56,6 @@ interface Entry {
   /** the code of that address's IPv6 /48, when it has one */
   net?: string;
 }
-
-const plannerOf = (e: Entry): Coded[] =>
-  e.by === undefined ? [] : [e.net !== undefined ? { by: e.by, net: e.net } : { by: e.by }];
 
 export const isPushEndpoint = (url: string): boolean => {
   try {
@@ -105,6 +108,69 @@ export interface Pusher {
 
 type Send = (sub: Plan["subscription"], payload: string) => Promise<{ gone: boolean }>;
 
+/**
+ * What scheduling needs of a subscription (P10), all memory holds of it when there is a store: when its next reminder
+ * is due, when one was last sent, and the codes of its planner. The rest is in its own file.
+ */
+interface Slot {
+  next: number;
+  lastSent: number;
+  by?: string;
+  net?: string;
+}
+
+const plannerOf = (s: Slot): Coded[] =>
+  s.by === undefined ? [] : [s.net !== undefined ? { by: s.by, net: s.net } : { by: s.by }];
+
+/** a subscription's name in memory and on disk: a digest of its endpoint, which may be 800 characters */
+const idOf = (endpoint: string) => createHash("sha256").update(endpoint).digest().subarray(0, 16).toString("hex");
+
+/**
+ * Each subscription whole (P10): its endpoint and keys, language, pet's name, time zone and reminders. With a folder, a
+ * file of its own there, written when it is planned and read when one of its reminders is due, so no plan rewrites
+ * every subscription; without one (tests), held in memory.
+ */
+function entryShelf(dir: string | null) {
+  const held = new Map<string, Entry>();
+  const path = (id: string) => join(dir ?? "", `${id}.json`);
+  if (dir) mkdirSync(dir, { recursive: true });
+  return {
+    put(id: string, e: Entry): void {
+      if (!dir) {
+        held.set(id, e);
+        return;
+      }
+      writeFlushed(`${path(id)}.tmp`, JSON.stringify(e));
+      renameSync(`${path(id)}.tmp`, path(id));
+    },
+    get(id: string): Entry | null {
+      if (!dir) return held.get(id) ?? null;
+      try {
+        return JSON.parse(readFileSync(path(id), "utf8")) as Entry;
+      } catch (e) {
+        process.stderr.write(`reminder ${id} not read: ${(e as Error).message}\n`);
+        return null;
+      }
+    },
+    has(id: string): boolean {
+      return dir ? existsSync(path(id)) : held.has(id);
+    },
+    remove(id: string): void {
+      held.delete(id);
+      if (dir) rmSync(path(id), { force: true });
+    },
+    /** the ids of the subscriptions kept, each file a write cut short let go */
+    ids(): string[] {
+      if (!dir) return [...held.keys()];
+      return readdirSync(dir).flatMap((name) => {
+        if (name.endsWith(".json")) return [name.slice(0, -5)];
+        rmSync(join(dir, name), { force: true });
+        return [];
+      });
+    },
+  };
+}
+
 export function createPusher(opts: {
   publicKey: string;
   privateKey: string;
@@ -112,45 +178,47 @@ export function createPusher(opts: {
   store?: string;
   send?: Send;
 }): Pusher {
-  const subs = new Map<string, Entry>();
+  const slots = new Map<string, Slot>();
+  const entries = entryShelf(opts.store ? `${opts.store}.d` : null);
   /**
    * When each subscription let go for having nothing left to send was last sent to (A83), kept for the gap between
    * reminders, so planning again soon after does not bring the next one early; oldest first, gone once past the gap
    */
   const lastSentOf = new Map<string, number>();
-  const rememberSent = (endpoint: string, at: number, now: number) => {
+  const rememberSent = (id: string, at: number, now: number) => {
     for (const [k, t] of lastSentOf) {
       if (now - t < MIN_GAP_MS && lastSentOf.size < MAX_SUBS) break;
       lastSentOf.delete(k);
     }
-    lastSentOf.delete(endpoint);
-    if (now - at < MIN_GAP_MS) lastSentOf.set(endpoint, at);
+    lastSentOf.delete(id);
+    if (now - at < MIN_GAP_MS) lastSentOf.set(id, at);
   };
-  let raw = false;
+  const ownerOf = (e: { by?: string; net?: string }) =>
+    e.by !== undefined ? { by: e.by, ...(e.net !== undefined ? { net: e.net } : {}) } : {};
+  const keep = (id: string, e: Entry) => {
+    entries.put(id, e);
+    const first = e.reminders[0];
+    if (first) slots.set(id, { next: first.at, lastSent: e.lastSent, ...ownerOf(e) });
+  };
   if (opts.store && hasStore(opts.store)) {
+    // a store kept as one file before P10 is moved into a file each, once; a file written since is newer and kept
     try {
       for (const e of readStore(opts.store) as Entry[]) {
-        if (!isPushEndpoint(e.sub.endpoint)) continue;
+        if (!isPushEndpoint(e.sub.endpoint) || entries.has(idOf(e.sub.endpoint))) continue;
         // a plan kept before addresses were coded held its planner's address: it is coded now (P6a)
-        if (e.by === undefined || CODE.test(e.by)) subs.set(e.sub.endpoint, e);
-        else {
-          const c = recoded(e.by);
-          subs.set(e.sub.endpoint, { ...e, by: c.by, ...(c.net !== undefined ? { net: c.net } : {}) });
-          raw = true;
-        }
+        const c = e.by === undefined || CODE.test(e.by) ? null : recoded(e.by);
+        entries.put(idOf(e.sub.endpoint), c ? { ...e, by: c.by, ...(c.net !== undefined ? { net: c.net } : {}) } : e);
       }
-    } catch {
-      // a damaged file starts empty rather than stopping the server
+    } catch (e) {
+      // a damaged file starts empty rather than stopping the server (readStore kept it aside and said so)
+      process.stderr.write(`${opts.store}: reminders not moved: ${(e as Error).message}\n`);
     }
+    for (const f of [opts.store, `${opts.store}.bak`, `${opts.store}.tmp`]) rmSync(f, { force: true });
   }
-  const save = () => {
-    if (!opts.store) return;
-    saveJson(opts.store, [...subs.values()]);
-  };
-  if (opts.store && raw) {
-    // written twice, so the .bak each write keeps holds no address either
-    save();
-    save();
+  for (const id of entries.ids()) {
+    const e = entries.get(id);
+    if (e && isPushEndpoint(e.sub.endpoint) && idOf(e.sub.endpoint) === id && e.reminders.length) keep(id, e);
+    else entries.remove(id);
   }
   if (opts.store) scrubAsides(dirname(opts.store), basename(opts.store));
   const send: Send =
@@ -168,78 +236,99 @@ export function createPusher(opts: {
         return { gone: code === 404 || code === 410 };
       }
     });
+  const drop = (id: string) => {
+    slots.delete(id);
+    entries.remove(id);
+  };
 
   return {
     publicKey: opts.publicKey,
-    size: () => subs.size,
+    size: () => slots.size,
     plan: (p, now, from) => {
       const endpoint = p.subscription.endpoint;
       if (!isPushEndpoint(endpoint)) return { ok: false, reason: "badEndpoint" };
-      const prev = subs.get(endpoint);
-      if (!prev && subs.size >= MAX_SUBS) return { ok: false, reason: "full" };
+      const id = idOf(endpoint);
+      const prev = slots.get(id);
+      if (!prev && slots.size >= MAX_SUBS) return { ok: false, reason: "full" };
       const who = from !== undefined ? codeOf(from) : undefined;
-      if (!prev && who && heldOverCoded([...subs.values()].flatMap(plannerOf), who, MAX_DEVICES_PER_ADDRESS))
+      if (!prev && who && heldOverCoded([...slots.values()].flatMap(plannerOf), who, MAX_DEVICES_PER_ADDRESS))
         return { ok: false, reason: "tooMany" };
       const reminders = p.reminders
         .filter((r) => r.at >= now - 60_000 && r.at <= now + HORIZON_MS)
         .map((r) => ({ kind: r.kind, at: outOfQuietHours(Math.max(r.at, now), p.tz) }))
         .sort((a, b) => a.at - b.at);
-      const lastSent = prev?.lastSent ?? lastSentOf.get(endpoint) ?? 0;
+      const lastSent = prev?.lastSent ?? lastSentOf.get(id) ?? 0;
       // a plan with nothing to send holds no place (A83)
       if (reminders.length === 0) {
-        if (prev) subs.delete(endpoint);
-        rememberSent(endpoint, lastSent, now);
-      } else
-        subs.set(endpoint, {
+        if (prev) drop(id);
+        rememberSent(id, lastSent, now);
+        return { ok: true };
+      }
+      try {
+        keep(id, {
           sub: p.subscription,
           lang: p.lang,
           name: p.name,
           tz: p.tz,
           reminders,
           lastSent,
-          ...(who
-            ? { by: who.by, ...(who.net !== undefined ? { net: who.net } : {}) }
-            : prev?.by
-              ? { by: prev.by, ...(prev.net !== undefined ? { net: prev.net } : {}) }
-              : {}),
+          ...ownerOf(who ?? prev ?? {}),
         });
-      save();
+      } catch (e) {
+        // a plan that could not be written is not kept, and the player is told it was not
+        process.stderr.write(`reminder plan not kept: ${(e as Error).message}\n`);
+        return { ok: false, reason: "unavailable" };
+      }
       return { ok: true };
     },
     stop: (endpoint) => {
-      const had = subs.delete(endpoint);
-      if (had) save();
+      const id = idOf(endpoint);
+      const had = slots.has(id);
+      if (had) drop(id);
       return had;
     },
     tick: async (now) => {
       let sent = 0;
-      let changed = false;
-      for (const [endpoint, e] of subs) {
-        const due = e.reminders.filter((r) => r.at <= now);
-        if (due.length === 0) continue;
-        e.reminders = e.reminders.filter((r) => r.at > now);
-        changed = true;
-        if (now - e.lastSent < MIN_GAP_MS) continue;
+      const due = [...slots].filter(([, s]) => s.next <= now).map(([id]) => id);
+      for (const id of due) {
+        const slot = slots.get(id);
+        // stopped, or planned again for later, while an earlier one was being sent
+        if (!slot || slot.next > now) continue;
+        const e = entries.get(id);
+        if (!e) {
+          // its file gone or cut short: nothing to send from (entries.get said so)
+          drop(id);
+          continue;
+        }
+        const reached = e.reminders.filter((r) => r.at <= now);
+        const left = e.reminders.filter((r) => r.at > now);
+        const sending = reached.length > 0 && now - slot.lastSent >= MIN_GAP_MS;
+        const lastSent = sending ? now : slot.lastSent;
+        // what is left is kept before the send, so a plan made while it is on its way is never written over
+        if (left.length) {
+          try {
+            keep(id, { ...e, reminders: left, lastSent });
+          } catch (err) {
+            process.stderr.write(`reminder ${id} not updated: ${(err as Error).message}\n`);
+          }
+        } else {
+          // what has nothing left to send lets its place go, its last reminder's time kept for the gap (A83)
+          drop(id);
+          rememberSent(id, lastSent, now);
+        }
+        if (!sending) continue;
         // the most pressing need among those due: sickness, then hunger, then the rest
         const order: ReminderKind[] = ["sick", "hungry", "dirty", "bored"];
-        const kind = order.find((k) => due.some((d) => d.kind === k))!;
+        const kind = order.find((k) => reached.some((d) => d.kind === k)) ?? "hungry";
         const text = reminderText(kind, e.lang, e.name);
         const r = await send(e.sub, JSON.stringify({ ...text, kind, url: "play.html" }));
         if (r.gone) {
-          subs.delete(endpoint);
+          drop(id);
+          lastSentOf.delete(id);
           continue;
         }
-        e.lastSent = now;
         sent++;
       }
-      // what has nothing left to send lets its place go, its last reminder's time kept for the gap (A83)
-      for (const [endpoint, e] of subs) {
-        if (e.reminders.length) continue;
-        subs.delete(endpoint);
-        rememberSent(endpoint, e.lastSent, now);
-        changed = true;
-      }
-      if (changed) save();
       return sent;
     },
   };

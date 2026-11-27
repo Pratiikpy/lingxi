@@ -1,4 +1,8 @@
+import { existsSync, mkdtempSync, readdirSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { describe, expect, it } from "vitest";
+import { bytesEach } from "./heap";
 import {
   MAX_DEVICES_PER_ADDRESS,
   createPusher,
@@ -149,5 +153,96 @@ describe("reminders by web push", () => {
       NOON_UTC,
     );
     expect(await pusher.tick(NOON_UTC + 70 * H)).toBe(0);
+  });
+});
+
+describe("what a reminder needs, held in memory; the rest in its own file (P10)", () => {
+  const folderStore = () => join(mkdtempSync(join(tmpdir(), "push-p10-")), "push-subscriptions.json");
+  const largest = (i: number): Plan => ({
+    subscription: {
+      endpoint: `https://fcm.googleapis.com/fcm/send/${String(i).padEnd(760, "x")}`,
+      keys: { p256dh: `p${i}`.padEnd(200, "p"), auth: `a${i}`.padEnd(100, "a") },
+    },
+    lang: "zh",
+    name: `Pet${i}`.padEnd(24, "x"),
+    tz: 0,
+    reminders: (["hungry", "bored", "dirty", "sick", "hungry", "bored"] as const).map((kind, k) => ({
+      kind,
+      at: NOON_UTC + (k + 1) * H,
+    })),
+  });
+  const withStore = (store: string, sent: Array<{ endpoint: string; auth: string; title: string }> = []) =>
+    createPusher({
+      publicKey: "pk",
+      privateKey: "sk",
+      subject: "https://lingxi.test",
+      store,
+      send: async (s, payload) => {
+        sent.push({ endpoint: s.endpoint, auth: s.keys.auth, title: (JSON.parse(payload) as { title: string }).title });
+        return { gone: false };
+      },
+    });
+
+  it("holds a subscription at its largest in under 600 bytes (2,245 with its endpoint and keys)", async () => {
+    const store = folderStore();
+    const planned: boolean[] = [];
+    const [each, pusher] = await bytesEach(
+      2_000,
+      () => withStore(store),
+      (p) => {
+        // each plan parsed from its text, as a request's body is
+        for (let i = 0; i < 2_000; i++)
+          planned.push(
+            p.plan(JSON.parse(JSON.stringify(largest(i))) as Plan, NOON_UTC, `198.51.${i >> 8}.${i & 255}`).ok,
+          );
+      },
+    );
+    expect(planned.every(Boolean)).toBe(true);
+    expect(pusher.size()).toBe(2_000);
+    expect(each).toBeLessThan(600);
+  });
+
+  it("writes a plan to its own file, never every subscription's, and sends from it, after a restart too", async () => {
+    const store = folderStore();
+    const sent: Array<{ endpoint: string; auth: string; title: string }> = [];
+    const p = withStore(store, sent);
+    for (let i = 0; i < 3; i++) expect(p.plan(largest(i), NOON_UTC, `203.0.113.${i}`).ok).toBe(true);
+    const files = readdirSync(`${store}.d`).filter((n) => n.endsWith(".json"));
+    expect(files).toHaveLength(3);
+    expect(existsSync(store)).toBe(false);
+    expect(await p.tick(NOON_UTC + H)).toBe(3);
+    expect(sent[0]).toEqual({
+      endpoint: largest(0).subscription.endpoint,
+      auth: largest(0).subscription.keys.auth,
+      title: reminderText("hungry", "zh", largest(0).name).title,
+    });
+    // a restart reads the schedule back; the next due reminder (three hours on, past the gap) is sent from the files
+    const again = withStore(store, sent);
+    expect(again.size()).toBe(3);
+    expect(await again.tick(NOON_UTC + 4 * H)).toBe(3);
+    expect(again.stop(largest(1).subscription.endpoint)).toBe(true);
+    expect(readdirSync(`${store}.d`).filter((n) => n.endsWith(".json"))).toHaveLength(2);
+  });
+
+  it("moves a store kept as one file into a file each, once, and keeps nothing of the old file", async () => {
+    const store = folderStore();
+    const sent: Array<{ endpoint: string; auth: string; title: string }> = [];
+    const old = [0, 1].map((i) => ({
+      sub: largest(i).subscription,
+      lang: "en",
+      name: largest(i).name,
+      tz: 0,
+      reminders: [{ kind: "sick", at: NOON_UTC + H }],
+      lastSent: 0,
+    }));
+    writeFileSync(store, JSON.stringify(old));
+    const p = withStore(store, sent);
+    expect(p.size()).toBe(2);
+    expect(existsSync(store)).toBe(false);
+    expect(await p.tick(NOON_UTC + H)).toBe(2);
+    // a file each, read in the folder's order: the order the two are sent in is not kept
+    expect(sent.map((s) => s.title).sort()).toEqual(
+      [0, 1].map((i) => reminderText("sick", "en", largest(i).name).title),
+    );
   });
 });

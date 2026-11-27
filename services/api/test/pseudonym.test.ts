@@ -4,7 +4,16 @@
  * open, the .bak it keeps and the files it set aside included, with the shares it counted still counting.
  */
 import { createHash } from "node:crypto";
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, statSync, writeFileSync } from "node:fs";
+import {
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  readdirSync,
+  rmSync,
+  statSync,
+  writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
@@ -527,8 +536,13 @@ describe("reminder plans keep a code of the planning address (P6a)", () => {
     for (const [i, a] of sixtyFours(40).entries()) if (p.plan(plan(1_000 + i), NOON, a).ok) network++;
     expect(network).toBe(MAX_DEVICES_PER_ADDRESS * 4);
     expect(addressesIn(dir)).toEqual([]);
-    // the file as a plan from before P6a wrote it
-    const old = (JSON.parse(readFileSync(store, "utf8")) as Array<{ by?: string; net?: string }>).map((e) => {
+    // the plans as a store from before P6a kept them: one file, its planners' addresses in it as they were
+    const kept = `${store}.d`;
+    const plans = readdirSync(kept).map(
+      (n) => JSON.parse(readFileSync(join(kept, n), "utf8")) as { by?: string; net?: string },
+    );
+    rmSync(kept, { recursive: true });
+    const old = plans.map((e) => {
       if (!e.net) return { ...e, by: "203.0.113.5" };
       const { net: _net, ...rest } = e;
       return { ...rest, by: "2001:db8:7:1::/64" };
