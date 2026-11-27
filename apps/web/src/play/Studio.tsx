@@ -270,19 +270,19 @@ export function StudioPanel({ pet }: { pet: Pet }) {
             label={pet.name}
           />
         </div>
-        {/* R36: the inks and the swatches belong to the tool with the grid and its preview: play.css lays the four
-            out together, beside the grid where the sheet is wide */}
+        {/* R36: the three inks, Erase and Clear; an ink is given its colour from the swatches below, or a colour of
+            the player's own (a small well on each ink's corner used to do that, too small to tap and lying over it) */}
         <div className="studio-inks" role="radiogroup" aria-label={L("Colour", "颜色")}>
           {[1, 2, 3].map((k) => (
             <label key={k} className={`studio-ink${ink === k ? " is-on" : ""}`}>
-              <input type="radio" name="ink" checked={ink === k} onChange={() => setInk(k)} />
-              <span style={{ background: colours[k - 1] }} />
               <input
-                type="color"
-                value={colours[k - 1]}
+                type="radio"
+                name="ink"
+                checked={ink === k}
+                onChange={() => setInk(k)}
                 aria-label={L(`Colour ${k}`, `颜色 ${k}`)}
-                onChange={(e) => setColours((c) => c.map((x, i) => (i === k - 1 ? e.target.value : x)))}
               />
+              <span style={{ background: colours[k - 1] }} />
             </label>
           ))}
           <label className={`studio-ink erase${ink === 0 ? " is-on" : ""}`}>
@@ -308,6 +308,17 @@ export function StudioPanel({ pet }: { pet: Pet }) {
               onClick={() => ink > 0 && setColours((cs) => cs.map((x, i) => (i === ink - 1 ? c : x)))}
             />
           ))}
+          {/* any colour at all for the chosen ink; while erasing there is no ink to colour */}
+          <span className="studio-mix">
+            <input
+              type="color"
+              value={colours[ink - 1] ?? colours[0]}
+              disabled={ink === 0}
+              aria-label={L("Your own colour", "自己调颜色")}
+              title={L("Your own colour", "自己调颜色")}
+              onChange={(e) => ink > 0 && setColours((cs) => cs.map((x, i) => (i === ink - 1 ? e.target.value : x)))}
+            />
+          </span>
         </div>
       </div>
       <div className="studio-row">

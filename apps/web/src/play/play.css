@@ -2596,6 +2596,11 @@
 .studio-ink.is-on {
   box-shadow: 0 0 0 3px var(--sky);
 }
+/* the ink's radio is drawn by the tile, so the keyboard's ring is drawn on the tile too */
+.studio-ink:has(> input:focus-visible) {
+  outline: 3px solid var(--sky);
+  outline-offset: 2px;
+}
 .studio-ink > input[type="radio"] {
   position: absolute;
   opacity: 0;
@@ -2616,24 +2621,87 @@
   border: 0;
   font: 700 0.75rem var(--round);
 }
-.studio-ink > input[type="color"] {
-  position: absolute;
-  right: -6px;
-  bottom: -6px;
-  width: 20px;
-  height: 20px;
-  padding: 0;
-  border: 2px solid var(--line);
-  border-radius: 50%;
-  cursor: pointer;
+/* R36: each swatch answers on 44 px, and so does the well for a colour of the player's own at the row's end. Each is
+   drawn 32 in the middle of a 44 px place of its own (rows 12 apart), so its touch area fills that place: it meets its
+   neighbours' without lying over them, and the first in a row is not cut by the sheet's scrolling edge, which a
+   touch area reaching out past the drawing was. Where there is room the thirteen sit in two even rows of seven and
+   six, rather than a long row and one or two left over */
+.studio-main > .studio-swatches {
+  gap: 12px 0;
+}
+.studio-main > .studio-swatches > * {
+  margin-inline: 6px;
+}
+@container studio (min-width: 310px) {
+  .studio-main > .studio-swatches {
+    display: grid;
+    grid-template-columns: repeat(7, 44px);
+  }
 }
 .studio-swatch {
-  width: 28px;
-  height: 28px;
+  position: relative;
+  width: 32px;
+  height: 32px;
   padding: 0;
   border: 2px solid var(--line);
   border-radius: 6px;
   cursor: pointer;
+}
+.studio-swatch::after {
+  content: "";
+  position: absolute;
+  inset: min(0px, calc(50% - 22px));
+}
+/* drawn as a round well ringed with the rainbow (a colour well's usual look), the chosen ink's colour inside; the
+   colour input itself is the 44 px around it */
+.studio-mix {
+  position: relative;
+  flex: none;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: conic-gradient(#e8604a, #ffc83d, #7fcb8e, #7fb7f0, #b07fe0, #ff8fae, #e8604a);
+}
+.studio-mix > input[type="color"] {
+  position: absolute;
+  inset: -6px;
+  box-sizing: border-box;
+  width: 44px;
+  height: 44px;
+  margin: 0;
+  padding: 9px;
+  border: 0;
+  background: none;
+  cursor: pointer;
+  appearance: none;
+}
+.studio-mix > input[type="color"]::-webkit-color-swatch-wrapper {
+  padding: 0;
+}
+.studio-mix > input[type="color"]::-webkit-color-swatch {
+  border: 2px solid var(--line);
+  border-radius: 50%;
+}
+.studio-mix > input[type="color"]::-moz-color-swatch {
+  border: 2px solid var(--line);
+  border-radius: 50%;
+}
+.studio-mix > input[type="color"]:focus-visible {
+  outline-offset: -4px;
+  border-radius: 50%;
+}
+/* while erasing there is no ink to colour: the well is empty, with a dashed edge (the browser paints the swatch's
+   colour on the element itself, so only an important rule clears it), not faded */
+.studio-mix > input[type="color"]:disabled {
+  cursor: not-allowed;
+}
+.studio-mix > input[type="color"]:disabled::-webkit-color-swatch {
+  border-style: dashed;
+  background: var(--card) !important;
+}
+.studio-mix > input[type="color"]:disabled::-moz-color-swatch {
+  border-style: dashed;
+  background: var(--card) !important;
 }
 .studio-row,
 .studio-terms {
@@ -2673,6 +2741,11 @@
 .studio-publish summary {
   cursor: pointer;
   font: 800 0.9rem var(--round);
+}
+/* R36: the fold-out's 44 px touch area reaches 10 px above its line; spaced so it no longer lies over the name's field
+   and Keep and wear, which answered on 42 */
+.studio-publish {
+  margin-top: 4px;
 }
 .studio-publish[open] {
   display: grid;
