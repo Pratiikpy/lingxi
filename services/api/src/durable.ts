@@ -7,17 +7,24 @@
  * is read in its place; when neither can be read the caller is told, so a store can refuse to start empty over them.
  */
 import { closeSync, existsSync, fsyncSync, openSync, readFileSync, renameSync, writeSync } from "node:fs";
+import { noteWriteFailure } from "./storage";
 
 export type Loaded = { state: "ok"; value: unknown; from: "file" | "bak" } | { state: "none" } | { state: "damaged" };
 
 /** Writes `text` to `path`, flushed to disk before this returns: for a file the caller then renames into place. */
 export function writeFlushed(path: string, text: string): void {
-  const fd = openSync(path, "w");
   try {
-    writeSync(fd, text);
-    fsyncSync(fd);
-  } finally {
-    closeSync(fd);
+    const fd = openSync(path, "w");
+    try {
+      writeSync(fd, text);
+      fsyncSync(fd);
+    } finally {
+      closeSync(fd);
+    }
+  } catch (e) {
+    // R45: a failed write is noted, so the health report says the server cannot save, and still thrown to its caller
+    noteWriteFailure(path, e);
+    throw e;
   }
 }
 

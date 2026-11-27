@@ -15,6 +15,7 @@ import { createJobs } from "../jobs";
 import type { ErrorLog } from "../clientErrors";
 import { serverBuild, backupStatus, watchdogStatus, storeSizes } from "../routes/health";
 import { LEDGER_FILE, readLedger, startsSummary } from "../restartLedger";
+import { DISK_ALARM_GB, diskFreeGb, diskStatus, writeFailures } from "../storage";
 export { SITE_CACHE_MAX, scriptPolicy, withSite } from "../routes/site";
 export { withVoice, withSitting, withArena, withMove, withPush, withMail, withLibrary } from "../routes/play";
 export { type SeasonProver, withSeason, type Sponsoring, withSponsor } from "../routes/season";
@@ -25,6 +26,12 @@ import type { HealthDetail } from "../server";
 /**
  * What /api/health reports beyond its switches; chain reads are cached so a busy health check costs nothing.
  */
+/** The disk of `dir` when the boot has watched none (a test, a tool): read now, held to the same alarm. */
+const diskOf = (dir: string) => {
+  const freeGb = diskFreeGb(dir);
+  return { freeGb, low: freeGb !== null && freeGb < DISK_ALARM_GB, alarmGb: DISK_ALARM_GB };
+};
+
 export function healthDetail({
   jobs,
   client,
@@ -103,6 +110,9 @@ export function healthDetail({
         Object.entries(process.memoryUsage()).map(([k, v]) => [k, Math.round(v / 1e5) / 10]),
       ),
       storesKb: await storeSizes(dataDir),
+      // R45: the data disk's free space, and the store writes that failed in the last day (with the latest)
+      disk: diskStatus() ?? diskOf(dataDir),
+      writes: writeFailures(),
     };
     cached = { at: Date.now(), value };
     return value;

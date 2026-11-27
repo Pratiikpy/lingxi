@@ -38,10 +38,34 @@ jobs:
         id: ask
         run: |
           for i in 1 2 3; do
-            if curl -fsS --max-time 20 "$URL" | grep -q '"ok":true'; then echo "up=yes" >> "$GITHUB_OUTPUT"; exit 0; fi
+            body=$(curl -fsS --max-time 20 "$URL" || true)
+            if printf '%s' "$body" | grep -q '"ok":true'; then
+              echo "up=yes" >> "$GITHUB_OUTPUT"
+              # R45: up but unable to save (a store write failed, or the data disk is nearly full)
+              if printf '%s' "$body" | grep -q '"store":false'; then echo "store=no" >> "$GITHUB_OUTPUT"; else echo "store=yes" >> "$GITHUB_OUTPUT"; fi
+              exit 0
+            fi
             sleep 20
           done
           echo "up=no" >> "$GITHUB_OUTPUT"
+
+      - name: Open or close the storage issue
+        # R45: the site answers but cannot save; told to the owner at once, closed when it can again, and never a
+        # failed run (only the site being down fails one, which the downtime step reads)
+        if: steps.ask.outputs.up == 'yes'
+        run: |
+          now=$(date -u +"%Y-%m-%d %H:%M UTC")
+          open=$(gh issue list --label storage --state open --json number --jq '.[0].number // empty' || true)
+          act() { if [ "$DRY" = yes ]; then echo "would run: $*"; else "$@"; fi; }
+          if [ "${{ steps.ask.outputs.store }}" = no ]; then
+            echo "cannot save at $now"
+            if [ -z "$open" ]; then
+              act gh label create storage --color D93F0B --description "The site answers but cannot save" --force || true
+              act gh issue create --label storage --assignee "${{ github.repository_owner }}" --title "The site cannot save ($now)"                 --body "$URL answers with \"store\":false: a store write failed in the last ten minutes, or the disk holding the server's data is under its alarm (5 GB unless LINGXI_DISK_ALARM_GB says otherwise). On the PC: the local /api/health detail gives \`disk\` (free GB) and \`writes\` (the failed writes of the last day, with the file and the reason), and ~/.pm2/logs/lingxi-server-error.log the errors. Free space on C: first. This issue closes itself when the site can save again." || true
+            fi
+          elif [ -n "$open" ]; then
+            act gh issue close "$open" --comment "Saving again at $now." || true
+          fi
 
       - name: Open or close the downtime issue
         run: |

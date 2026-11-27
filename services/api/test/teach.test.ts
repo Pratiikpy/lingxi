@@ -89,7 +89,7 @@ describe("the endpoint", () => {
   it("says teaching is off without a key, and validates bodies", async () => {
     const app = createApp(null);
     const h = await app.request("/api/health");
-    expect(await h.json()).toEqual({ ok: true, teach: false, voice: false, relay: false, live: false });
+    expect(await h.json()).toEqual({ ok: true, teach: false, voice: false, relay: false, live: false, store: true });
     const t = await app.request("/api/teach", {
       method: "POST",
       body: "{}",
@@ -148,7 +148,7 @@ describe("the health detail is for this machine only (A64)", () => {
     const outside = await (
       await app.request("/api/health", { headers: { "cf-connecting-ip": "198.51.100.7" } })
     ).json();
-    expect(outside).toEqual({ ok: true, teach: false, voice: false, relay: false, live: false });
+    expect(outside).toEqual({ ok: true, teach: false, voice: false, relay: false, live: false, store: true });
     const local = await (await app.request("/api/health")).json();
     expect(local).toMatchObject({ ok: true, detail: { relayerOkb: 1.5 } });
   });

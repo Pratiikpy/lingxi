@@ -6,6 +6,7 @@
  * ANTHROPIC_API_KEY environment variable) and never leaves this process.
  */
 
+import { storeOk, watchDisk } from "./storage";
 import { withOriginCheck } from "./originCheck";
 import { LEDGER_FILE, noteRestart } from "./restartLedger";
 import { createErrorLog, withErrors } from "./clientErrors";
@@ -133,6 +134,8 @@ export function createApp(
       voice: client !== null,
       relay: relayer !== null,
       live: live !== null,
+      // R45: whether the server can save (no write failed in the last ten minutes, the data disk not low)
+      store: storeOk(),
       ...(detail && directLocal(c) ? { detail: await detail() } : {}),
     }),
   );
@@ -332,6 +335,8 @@ if (isMain) {
   const dataDir = resolve(dirname(fileURLToPath(import.meta.url)), "../data");
   // P8: the game's own uncaught errors, reported by players' browsers; each also goes to this server's log
   const errors = createErrorLog({ log: (line) => process.stderr.write(line) });
+  // R45: the disk that holds the stores is watched, so a disk running full is said before a write fails
+  watchDisk(dataDir);
   const { detail } = healthDetail({ jobs, client, modelBudget, relayer, watch, dataDir, errors });
   const { isKeeper, isSettled, quota, petOnChain } = relayChecks({ chainCtx, dataDir });
   const app = createApp(client, undefined, relayer, undefined, live, detail, isKeeper, quota, isSettled, petOnChain);

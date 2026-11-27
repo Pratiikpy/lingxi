@@ -363,6 +363,8 @@ async function siteChecks(): Promise<void> {
         indexerLagBlocks?: number | null;
         backup?: { ageHours: number; local: boolean; drive: boolean; error: string | null } | null;
         watchdog?: { ageSeconds: number } | null;
+        disk?: { freeGb: number | null; low: boolean; alarmGb: number };
+        writes?: { lastDay: number; last: { at: number; file: string; code: string } | null };
       };
     };
     // the switches are booleans; every background job must also be healthy
@@ -379,6 +381,14 @@ async function siteChecks(): Promise<void> {
         `backup ${b ? `${b.ageHours}h old, local ${b.local}, drive ${b.drive}${b.error ? `: ${b.error}` : ""}` : "never ran"}`,
       );
     if (j.detail?.relayerLow) failing.push(`relayer low: ${j.detail.relayerOkb} OKB`);
+    // R45: a disk running full, or a store write that failed in the last day, fails the check with what failed
+    const disk = j.detail?.disk;
+    if (disk?.low) failing.push(`the data disk has ${disk.freeGb} GB free, under ${disk.alarmGb}`);
+    const writes = j.detail?.writes;
+    if (writes?.lastDay)
+      failing.push(
+        `${writes.lastDay} store write(s) failed in the last day, last ${writes.last?.file} ${writes.last?.code} at ${new Date(writes.last?.at ?? 0).toISOString()}`,
+      );
     // the processor takes the transistor fee in BEM: below ten tape-outs' worth, players would soon be refused (A40)
     if (j.detail?.relayerBemLow)
       failing.push(`relayer's BEM low: ${j.detail.relayerBem} BEM, ${j.detail.relayerBemTapeouts} tape-outs' fees`);
