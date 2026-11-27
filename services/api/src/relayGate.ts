@@ -5,6 +5,7 @@
  * kept for season keepsakes.
  */
 
+import { createHash } from "node:crypto";
 import { mkdirSync } from "node:fs";
 import { dirname } from "node:path";
 import { type Address, type Hex, isAddress, recoverMessageAddress } from "viem";
@@ -32,6 +33,13 @@ export interface RelayRequest {
 
 const isSignature = (s: string): s is Hex => /^0x[0-9a-fA-F]{130}$/.test(s);
 
+/**
+ * The key a nonce is kept under: the first 8 bytes of its text's SHA-256 (P10). Its whole text, the signer and the nonce
+ * joined, held 445 bytes a nonce, 44.5 MB at the cap; the digest holds about 85. Two texts meeting in 64 bits (about one
+ * chance in 10^10 at a full book, and not to be steered without 2^64 work) would only refuse the later one as replayed.
+ */
+const nonceKey = (text: string): string => createHash("sha256").update(text).digest().subarray(0, 8).toString("hex");
+
 /** Nonces seen in the last window, so a signature is used once. */
 export function createNonceBook(cap = 100_000) {
   const seen = new Map<string, number>();
@@ -40,8 +48,9 @@ export function createNonceBook(cap = 100_000) {
     use(nonce: string, until: number, now: number): boolean | "full" {
       if (seen.size >= cap) for (const [n, t] of seen) if (t < now) seen.delete(n);
       if (seen.size >= cap) return "full";
-      if (seen.has(nonce)) return false;
-      seen.set(nonce, until);
+      const key = nonceKey(nonce);
+      if (seen.has(key)) return false;
+      seen.set(key, until);
       return true;
     },
   };
