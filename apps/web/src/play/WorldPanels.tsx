@@ -164,6 +164,51 @@ export function MapPanel({ onGone }: { onGone: () => void }) {
   );
 }
 
+/** One thing in the bag, as a row. */
+type BagEntry = { item: NonNullable<(typeof ITEM)[number]>; n: number };
+
+/**
+ * A row of the bag: the thing, how many, how often it has been used, and the button that uses it. It is a component of
+ * its own, made once (R37): made inside BagPanel's render it was a new kind of component every render, so React rebuilt
+ * every row whenever the world changed (the game's clock, a coin), and the button a keyboard player had tabbed to was
+ * thrown away with the focus on it.
+ */
+function BagRow({
+  e,
+  used,
+  lang,
+  action,
+  onAct,
+}: {
+  e: BagEntry;
+  used: number;
+  lang: "en" | "zh";
+  action?: string;
+  onAct?: () => void;
+}) {
+  return (
+    <li className="bag-item">
+      <img className="pixel" src={e.item.art} alt="" width={40} height={40} />
+      <div className="bag-text">
+        <b>
+          {e.item.name[lang]} <em>×{e.n}</em>
+        </b>
+        <span>{e.item.desc[lang]}</span>
+        {e.item.limit !== undefined && (
+          <span className="small">
+            {lang === "zh" ? `已用 ${used}/${e.item.limit}` : `Used ${used} of ${e.item.limit}`}
+          </span>
+        )}
+      </div>
+      {action && (
+        <button type="button" className="btn" onClick={onAct} aria-label={rowAct(action, e.item.name[lang], lang)}>
+          {action}
+        </button>
+      )}
+    </li>
+  );
+}
+
 export function BagPanel({ onFed }: { onFed: () => void }) {
   const t = useT();
   const { lang } = useLang();
@@ -197,29 +242,6 @@ export function BagPanel({ onFed }: { onFed: () => void }) {
     if (b === "tired") return lang === "zh" ? "宠物太累了" : "Your pet is too tired";
     return null;
   };
-  const Row = ({ e, action, onAct }: { e: (typeof entries)[number]; action?: string; onAct?: () => void }) => (
-    <li className="bag-item">
-      <img className="pixel" src={e.item.art} alt="" width={40} height={40} />
-      <div className="bag-text">
-        <b>
-          {e.item.name[lang]} <em>×{e.n}</em>
-        </b>
-        <span>{e.item.desc[lang]}</span>
-        {e.item.limit !== undefined && (
-          <span className="small">
-            {lang === "zh"
-              ? `已用 ${usedOf(world, e.item.index)}/${e.item.limit}`
-              : `Used ${usedOf(world, e.item.index)} of ${e.item.limit}`}
-          </span>
-        )}
-      </div>
-      {action && (
-        <button type="button" className="btn" onClick={onAct} aria-label={rowAct(action, e.item.name[lang], lang)}>
-          {action}
-        </button>
-      )}
-    </li>
-  );
   return (
     <div className="bag">
       <p className="coins">{t("bag.coins", { n: world.coins })}</p>
@@ -258,7 +280,14 @@ export function BagPanel({ onFed }: { onFed: () => void }) {
         {food.length ? (
           <ul className="bag-list">
             {food.map((e) => (
-              <Row key={e.item.index} e={e} action={t("bag.feed")} onAct={() => (use(e.item.index), onFed())} />
+              <BagRow
+                key={e.item.index}
+                e={e}
+                used={usedOf(world, e.item.index)}
+                lang={lang}
+                action={t("bag.feed")}
+                onAct={() => (use(e.item.index), onFed())}
+              />
             ))}
           </ul>
         ) : (
@@ -272,16 +301,20 @@ export function BagPanel({ onFed }: { onFed: () => void }) {
             {drinks.map((e) =>
               e.item.index === FRESH_START_TEA ? (
                 // the Fresh Start Tea returns skill points: it opens the skills screen to confirm (plan 4.4)
-                <Row
+                <BagRow
                   key={e.item.index}
                   e={e}
+                  used={usedOf(world, e.item.index)}
+                  lang={lang}
                   action={lang === "zh" ? "重新选择技能" : "Choose skills again"}
                   onAct={() => (play("tap"), useSkillsUi.getState().show({ respec: true }))}
                 />
               ) : (
-                <Row
+                <BagRow
                   key={e.item.index}
                   e={e}
+                  used={usedOf(world, e.item.index)}
+                  lang={lang}
                   action={
                     e.item.kind === "box"
                       ? t("bag.open")
