@@ -227,7 +227,6 @@
   "services/api/src/numbers.ts",
   "services/api/src/packets.ts",
   "services/api/src/papers.ts",
-  "services/api/src/push.ts",
   "services/api/src/refScan.ts",
   "services/api/src/relayer.ts",
   "services/api/src/season.ts",
