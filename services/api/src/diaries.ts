@@ -30,6 +30,13 @@ const PER_ADDRESS_BYTES_PER_DAY = 16 * 1024 * 1024;
 const DAY_MS = 86_400_000;
 /** what a log that does not match costs its sender at the least, however small it is (A145) */
 const MIN_MISMATCH_CHARGE = 64 * 1024;
+/**
+ * The callers (addresses, and IPv6 /48s) the day's map keeps its own count for (P10); past them a newcomer's bytes count
+ * in one count shared by every newcomer, "(others)", held to one address's day. A crowd of addresses cannot grow the
+ * map, and none gets an allowance of its own by coming once it is full.
+ */
+export const MAX_SPENDERS = 20_000;
+const OTHERS = "(others)";
 const ID = /^\d{1,12}$/;
 
 export type PublishResult =
@@ -59,9 +66,10 @@ const TOUCH_MS = 60_000;
 
 export function createDiaryStore(
   dir?: string,
-  opts: { now?: () => number; totalBytes?: number; perAddressBytesPerDay?: number } = {},
+  opts: { now?: () => number; totalBytes?: number; perAddressBytesPerDay?: number; maxSpenders?: number } = {},
 ) {
   const now = opts.now ?? Date.now;
+  const maxSpenders = opts.maxSpenders ?? MAX_SPENDERS;
   const totalBytes = opts.totalBytes ?? TOTAL_BYTES;
   const perAddress = opts.perAddressBytesPerDay ?? PER_ADDRESS_BYTES_PER_DAY;
   if (dir && !existsSync(dir)) mkdirSync(dir, { recursive: true });
@@ -123,23 +131,41 @@ export function createDiaryStore(
   type Plan = { ok: true; body: string; held: Held | undefined; t: number; day: number; grows: number };
   type Refusal = { ok: false; reason: "invalid" | "unknown" | "tooLong" | "older" | "busy" | "full" };
 
-  /** what `from` has spent today, in bytes */
-  const spentToday = (from: string, day: number) => {
-    const mine = spent.get(from);
-    return mine?.day === day ? mine.bytes : 0;
+  /**
+   * The map for `day`. An earlier day's spending is never read again (spentToday counts only the day asked for), so a
+   * new day lets it go, as duels.ts does: kept, it held one entry for every address that ever published, for good (P10)
+   */
+  const roll = (day: number) => {
+    if (day <= spentDay) return;
+    spentDay = day;
+    spent.clear();
   };
   /**
-   * spends `bytes` of `from`'s day, and of its IPv6 /48's (A123). An earlier day's spending is never read again
-   * (spentToday counts only the day asked for), so a new day lets it go, as duels.ts does: kept, it held one entry for
-   * every address that ever published, for good (P10)
+   * The counts `from`'s spending goes to (A123): its own and its IPv6 /48's, each its own while the map has room or
+   * already holds it, else the one shared count (P10). Both shared is one count, held to one address's day.
    */
+  const keysOf = (from: string): Array<{ key: string; day: number }> => {
+    const keyOf = (k: string, adding = 0) => (spent.has(k) || spent.size + adding < maxSpenders ? k : OTHERS);
+    const me = keyOf(from);
+    const prefix = prefixOf(from);
+    // the /48 has room only if there is room beside the address's own new count
+    const net = prefix === null ? null : keyOf(prefix, me !== OTHERS && !spent.has(me) ? 1 : 0);
+    return [
+      { key: me, day: perAddress },
+      ...(net !== null && net !== me
+        ? [{ key: net, day: net === OTHERS ? perAddress : perAddress * PREFIX_SHARE }]
+        : []),
+    ];
+  };
+  /** what `key` has spent today, in bytes */
+  const spentToday = (key: string, day: number) => {
+    const mine = spent.get(key);
+    return mine?.day === day ? mine.bytes : 0;
+  };
+  /** spends `bytes` of `from`'s day, and of its IPv6 /48's (A123) */
   const addSpent = (from: string, day: number, bytes: number) => {
-    if (day > spentDay) {
-      spentDay = day;
-      spent.clear();
-    }
-    for (const k of [from, ...(prefixOf(from) !== null ? [prefixOf(from)!] : [])])
-      spent.set(k, { day, bytes: spentToday(k, day) + bytes });
+    roll(day);
+    for (const { key } of keysOf(from)) spent.set(key, { day, bytes: spentToday(key, day) + bytes });
   };
   const charge = (from: string, bytes: number) => addSpent(from, Math.floor(now() / DAY_MS), bytes);
 
@@ -159,10 +185,10 @@ export function createDiaryStore(
     const body = JSON.stringify(log);
     const grows = Math.max(0, body.length - (held?.bytes ?? 0));
     const day = Math.floor(t / DAY_MS);
-    const today = spentToday(from, day);
-    const prefix = prefixOf(from);
-    // an address publishes its day's bytes, and its IPv6 /48 four addresses' worth (A123)
-    if (today + grows > perAddress || (prefix !== null && spentToday(prefix, day) + grows > perAddress * PREFIX_SHARE))
+    roll(day);
+    // an address publishes its day's bytes, and its IPv6 /48 four addresses' worth (A123); past MAX_SPENDERS callers,
+    // a newcomer's bytes count in the one shared count (P10)
+    if (keysOf(from).some(({ key, day: most }) => spentToday(key, day) + grows > most))
       return { ok: false, reason: "busy" };
     // a full shelf can let go of every other diary; one too big even for that is refused before it is hashed
     if (body.length > totalBytes) return { ok: false, reason: "full" };

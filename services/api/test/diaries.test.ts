@@ -4,7 +4,7 @@ import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { Hono } from "hono";
 import { ZERO_HASH, chainAll } from "@lingxi/game";
-import { DIARY_FLOOR_WORDS, DIARY_WORDS_PER_MINUTE, createDiaryStore } from "../src/diaries";
+import { DIARY_FLOOR_WORDS, DIARY_WORDS_PER_MINUTE, MAX_SPENDERS, createDiaryStore } from "../src/diaries";
 import { withDiaries } from "../src/server";
 
 const words = [0x1234, 0x0001, 0xffff, 0x2a2a];
@@ -205,5 +205,53 @@ describe("what a diary's sender spent, kept for its day only (P10)", () => {
     // an IPv6 caller's spend counts for its /64 and its /48
     expect(store.publish({ ...log, petId: "9" }, onChain(hash), "2001:db8:1:1::/64").ok).toBe(true);
     expect(store.stats().spenders).toBe(4);
+  });
+});
+
+describe("a day's map of 20,000 callers, and the day a publish is charged to (P10)", () => {
+  const diary = (petId: string) => ({ ...log, petId });
+  const size = JSON.stringify(diary("10")).length;
+
+  it("holds MAX_SPENDERS callers a day; past them newcomers share one allowance", () => {
+    expect(MAX_SPENDERS).toBe(20_000);
+    const store = createDiaryStore(undefined, { now: () => NOW, perAddressBytesPerDay: size * 2, maxSpenders: 2 });
+    expect(store.publish(diary("10"), onChain(hash), "203.0.113.1").ok).toBe(true);
+    expect(store.publish(diary("11"), onChain(hash), "203.0.113.2").ok).toBe(true);
+    // the map is full: the next newcomers share one address's day, two diaries between them
+    expect(store.publish(diary("12"), onChain(hash), "203.0.113.3").ok).toBe(true);
+    expect(store.publish(diary("13"), onChain(hash), "203.0.113.4").ok).toBe(true);
+    expect(store.publish(diary("14"), onChain(hash), "203.0.113.5")).toEqual({ ok: false, reason: "busy" });
+    // an IPv6 newcomer's network gets no count of its own past the cap either
+    expect(store.publish(diary("15"), onChain(hash), "2001:db8:7:1::/64")).toEqual({ ok: false, reason: "busy" });
+    // a caller the map holds keeps its own allowance
+    expect(store.publish(diary("16"), onChain(hash), "203.0.113.1").ok).toBe(true);
+    expect(store.stats().spenders).toBe(3);
+  });
+
+  it("a new day lets the map go, so the first callers of the day get counts of their own again", () => {
+    let now = NOW;
+    const store = createDiaryStore(undefined, { now: () => now, perAddressBytesPerDay: size, maxSpenders: 1 });
+    expect(store.publish(diary("10"), onChain(hash), "203.0.113.1").ok).toBe(true);
+    expect(store.publish(diary("11"), onChain(hash), "203.0.113.2").ok).toBe(true);
+    expect(store.publish(diary("12"), onChain(hash), "203.0.113.3")).toEqual({ ok: false, reason: "busy" });
+    now += 86_400_000;
+    expect(store.publish(diary("12"), onChain(hash), "203.0.113.3").ok).toBe(true);
+  });
+
+  it("charges a publish whose hash ends after midnight to the new day, and lets the old day go", async () => {
+    let now = Date.UTC(2026, 10, 20, 23, 59, 59);
+    const store = createDiaryStore(undefined, { now: () => now, perAddressBytesPerDay: size * 2 });
+    expect(store.publish(diary("10"), onChain(hash), "203.0.113.1").ok).toBe(true);
+    // the hash runs past midnight: the bounds are checked again after it, on the new day
+    const late = await store.publishLog(diary("11"), onChain(hash), "203.0.113.1", async () => {
+      now += 2_000;
+      return hash;
+    });
+    expect(late.ok).toBe(true);
+    expect(store.stats().spenders).toBe(1);
+    // the new day's count holds that publish: one more of the same size fits the day, a second does not (charged to the
+    // old day, both would fit)
+    expect(store.publish(diary("12"), onChain(hash), "203.0.113.1").ok).toBe(true);
+    expect(store.publish(diary("13"), onChain(hash), "203.0.113.1")).toEqual({ ok: false, reason: "busy" });
   });
 });
