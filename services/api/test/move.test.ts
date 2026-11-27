@@ -1,4 +1,4 @@
-import { readdirSync } from "node:fs";
+import { mkdirSync, readdirSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { Hono } from "hono";
 import { PREFIX_SHARE } from "../src/limit";
@@ -130,6 +130,14 @@ describe("a waiting move's save kept in a file, not in memory (P10)", () => {
     t = MOVE_TTL_MS + 1;
     expect(store.take(b.code)).toBeNull();
     expect(files(dir)).toEqual([]);
+  });
+
+  it("starts when something not its own, a folder, sits in its folder, and leaves that alone", () => {
+    const dir = folder();
+    mkdirSync(join(dir, "kept"));
+    const store = createMoveStore(Date.now, dir);
+    expect(store.put(save).ok).toBe(true);
+    expect(readdirSync(dir)).toContain("kept");
   });
 
   it("starts with an empty folder: a move never outlives the server, as before", () => {

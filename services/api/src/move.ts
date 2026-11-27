@@ -45,7 +45,9 @@ export function createMoveStore(now: () => number = Date.now, dir?: string) {
   const file = (code: string) => join(dir ?? "", `${code}.json`);
   if (dir) {
     mkdirSync(dir, { recursive: true });
-    for (const name of readdirSync(dir)) rmSync(join(dir, name), { force: true });
+    // the saves of moves the last run held, each its own file; anything else here is not the store's, and is left alone
+    for (const d of readdirSync(dir, { withFileTypes: true }))
+      if (d.isFile() && d.name.endsWith(".json")) rmSync(join(dir, d.name), { force: true });
   }
   const drop = (k: string) => {
     const v = held.get(k);
