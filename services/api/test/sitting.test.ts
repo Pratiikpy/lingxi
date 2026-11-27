@@ -1,7 +1,7 @@
 import { existsSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { Hono } from "hono";
 import { withSitting } from "../src/server";
 import { MAX_PACKS, MAX_PACKS_PER_OWNER, createSittingStore, keyHashOf } from "../src/sitting";
@@ -335,5 +335,56 @@ describe("the shelf holds a bounded number of packs, and each pack's facts in a 
     expect(await b.collect(one.code)).toEqual({ pack });
     expect(readdirSync(dir).sort()).toEqual([`${one.code}.meta`, `${one.code}.pack`]);
     expect(createSittingStore(dir, () => t).stats()).toEqual(a.stats());
+  });
+});
+
+describe("a sitting index that cannot be read takes no pack with it (P10)", () => {
+  it("keeps every pack on disk when the index and its .bak are damaged, at this start and the next", async () => {
+    const t = 1_800_000_000_000;
+    const dir = join(mkdtempSync(join(tmpdir(), "lx-sit-")), "sitting");
+    const a = createSittingStore(dir, () => t);
+    for (let i = 0; i < 3; i++) await a.leave(pack, keyHashOf(KEY), t + 86_400_000, `203.0.113.${i}`);
+    // the layout before P10: an index, no facts beside the packs; and both copies of the index damaged
+    for (const n of readdirSync(dir).filter((x) => x.endsWith(".meta"))) rmSync(join(dir, n));
+    writeFileSync(join(dir, "index.json"), "{cut sho");
+    writeFileSync(join(dir, "index.json.bak"), "{cut");
+    const said: string[] = [];
+    const spy = vi.spyOn(process.stderr, "write").mockImplementation((text) => {
+      said.push(String(text));
+      return true;
+    });
+    try {
+      createSittingStore(dir, () => t);
+      createSittingStore(dir, () => t);
+    } finally {
+      spy.mockRestore();
+    }
+    expect(readdirSync(dir).filter((x) => x.endsWith(".pack"))).toHaveLength(3);
+    expect(said.join("")).toMatch(/kept aside/);
+  });
+  it("keeps a pack the index's .bak, one write behind, does not list, when the index itself could not be read", async () => {
+    const t = 1_800_000_000_000;
+    const dir = join(mkdtempSync(join(tmpdir(), "lx-sit-")), "sitting");
+    const a = createSittingStore(dir, () => t);
+    const codes: string[] = [];
+    for (let i = 0; i < 3; i++) {
+      const r = await a.leave(pack, keyHashOf(KEY), t + 86_400_000, `203.0.113.${i}`);
+      if (r.ok) codes.push(r.code);
+    }
+    const facts = Object.fromEntries(
+      codes.map((c) => [c, JSON.parse(readFileSync(join(dir, `${c}.meta`), "utf8")) as unknown]),
+    );
+    for (const c of codes) rmSync(join(dir, `${c}.meta`));
+    writeFileSync(join(dir, "index.json"), "{cut sho");
+    // the .bak as the write before the last left it: the third pack not yet in it
+    writeFileSync(join(dir, "index.json.bak"), JSON.stringify(Object.fromEntries(Object.entries(facts).slice(0, 2))));
+    const spy = vi.spyOn(process.stderr, "write").mockImplementation(() => true);
+    try {
+      const b = createSittingStore(dir, () => t);
+      expect(await b.collect(codes[0] ?? "")).toEqual({ pack });
+    } finally {
+      spy.mockRestore();
+    }
+    expect(readdirSync(dir).filter((x) => x.endsWith(".pack"))).toHaveLength(3);
   });
 });

@@ -233,11 +233,17 @@ export function createSittingStore(
         process.stderr.write(`sitting index and its .bak could not be read: both kept aside\n`);
     }
     scrubAsides(folder, "index.json");
-    // a pack or homecoming with no facts at all was never handed out (a crash came between its two writes): it goes
-    const known = new Set(names.flatMap((n) => /^([a-f0-9]{24})\.meta$/.exec(n)?.[1] ?? []));
-    for (const name of names) {
-      const code = /^([a-f0-9]{24})\.(pack|back)$/.exec(name)?.[1];
-      if (code && !index.has(code) && !known.has(code)) rmSync(join(folder, name), { force: true });
+    // a pack or homecoming with no facts at all was never handed out (a crash came between its two writes): it goes.
+    // Not while an index that could not be read is kept aside (now or at an earlier start), nor when the index was read
+    // from its .bak, one write behind: the facts of those packs may be in it, and they stay until it is dealt with
+    if (readdirSync(folder).some((n) => n.startsWith("index.json.damaged-")))
+      process.stderr.write(`sitting: an index kept aside could not be read, so packs without facts are kept\n`);
+    else {
+      const known = new Set(names.flatMap((n) => /^([a-f0-9]{24})\.meta$/.exec(n)?.[1] ?? []));
+      for (const name of names) {
+        const code = /^([a-f0-9]{24})\.(pack|back)$/.exec(name)?.[1];
+        if (code && !index.has(code) && !known.has(code)) rmSync(join(folder, name), { force: true });
+      }
     }
   }
   if (legacy && existsSync(legacy)) {
