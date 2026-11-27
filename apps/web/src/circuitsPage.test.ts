@@ -34,7 +34,10 @@ function load(): { refused: number } {
     const calls = JSON.parse(init?.body ?? "[]") as Array<{ id: number }>;
     return { json: async () => calls.map((c) => ({ jsonrpc: "2.0", id: c.id, result: answer })) };
   };
-  document.documentElement.innerHTML = html.replace(/<script>[\s\S]*<\/script>/, "");
+  // the page's own script is what is tested; its stylesheet is left out (this DOM loads no CSS, and said so in CI's log)
+  document.documentElement.innerHTML = html
+    .replace(/<script>[\s\S]*<\/script>/, "")
+    .replace(/<link[^>]*rel="stylesheet"[^>]*>/g, "");
   const code = html.match(/<script>([\s\S]*)<\/script>/)![1]!;
   new Function("fetch", "document", "navigator", code)(fakeFetch, document, { language: "en" });
   return seen;
