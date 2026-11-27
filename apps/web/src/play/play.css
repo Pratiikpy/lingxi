@@ -2491,6 +2491,10 @@
   display: grid;
   gap: 8px;
 }
+/* R36: the studio lays its tool out by its own width (a phone, the desktop's sheet, a phone held sideways) */
+.studio {
+  container: studio / inline-size;
+}
 .fashion > .row {
   align-items: center;
 }
@@ -2502,11 +2506,51 @@
   align-items: center;
   gap: 6px;
 }
+/* R36: the drawing tool in one piece. The preview sits right beside the grid it previews (the grid's column was the
+   whole width, so on a wide sheet the preview floated far off at its other edge), the inks and the swatches below.
+   On a phone it all stacks; where the sheet is wide (a phone held sideways) the inks and the swatches join the preview
+   beside the grid, so the whole tool shows at once on the short screen */
 .studio-main {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-columns: minmax(0, 340px) minmax(110px, 1fr);
+  grid-template-areas:
+    "grid preview"
+    "inks inks"
+    "swatches swatches";
   gap: 12px;
   align-items: center;
+}
+.studio-main > .studio-grid {
+  grid-area: grid;
+}
+.studio-main > .studio-preview {
+  grid-area: preview;
+  justify-self: start;
+}
+.studio-main > .studio-inks {
+  grid-area: inks;
+}
+.studio-main > .studio-swatches {
+  grid-area: swatches;
+}
+@container studio (max-width: 469px) {
+  .studio-main {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas: "grid" "preview" "inks" "swatches";
+  }
+  .studio-main > .studio-preview {
+    justify-self: center;
+  }
+}
+@container studio (min-width: 680px) {
+  .studio-main {
+    grid-template-areas:
+      "grid preview"
+      "grid inks"
+      "grid swatches";
+    grid-template-rows: auto auto 1fr;
+    align-items: start;
+  }
 }
 .studio-grid {
   display: grid;
@@ -2752,18 +2796,9 @@
 .holder-gift-test1 input {
   width: 8em;
 }
-@media (max-width: 420px) {
-  .studio-main {
-    grid-template-columns: 1fr;
-    justify-items: center;
-  }
-}
-/* on phones the studio stacks; the grid keeps its full width instead of shrinking to its empty cells */
-@media (max-width: 420px) {
-  .studio-grid {
-    width: 100%;
-    justify-self: stretch;
-  }
+/* on phones the studio stacks (above); the grid keeps its full width instead of shrinking to its empty cells */
+.studio-main > .studio-grid {
+  width: 100%;
 }
 /* the drawing surface stays light in both themes, so dark inks show as they will on the pet */
 .studio-grid {

@@ -270,43 +270,45 @@ export function StudioPanel({ pet }: { pet: Pet }) {
             label={pet.name}
           />
         </div>
-      </div>
-      <div className="studio-inks" role="radiogroup" aria-label={L("Colour", "颜色")}>
-        {[1, 2, 3].map((k) => (
-          <label key={k} className={`studio-ink${ink === k ? " is-on" : ""}`}>
-            <input type="radio" name="ink" checked={ink === k} onChange={() => setInk(k)} />
-            <span style={{ background: colours[k - 1] }} />
-            <input
-              type="color"
-              value={colours[k - 1]}
-              aria-label={L(`Colour ${k}`, `颜色 ${k}`)}
-              onChange={(e) => setColours((c) => c.map((x, i) => (i === k - 1 ? e.target.value : x)))}
-            />
+        {/* R36: the inks and the swatches belong to the tool with the grid and its preview: play.css lays the four
+            out together, beside the grid where the sheet is wide */}
+        <div className="studio-inks" role="radiogroup" aria-label={L("Colour", "颜色")}>
+          {[1, 2, 3].map((k) => (
+            <label key={k} className={`studio-ink${ink === k ? " is-on" : ""}`}>
+              <input type="radio" name="ink" checked={ink === k} onChange={() => setInk(k)} />
+              <span style={{ background: colours[k - 1] }} />
+              <input
+                type="color"
+                value={colours[k - 1]}
+                aria-label={L(`Colour ${k}`, `颜色 ${k}`)}
+                onChange={(e) => setColours((c) => c.map((x, i) => (i === k - 1 ? e.target.value : x)))}
+              />
+            </label>
+          ))}
+          <label className={`studio-ink erase${ink === 0 ? " is-on" : ""}`}>
+            <input type="radio" name="ink" checked={ink === 0} onChange={() => setInk(0)} />
+            <span>{L("Erase", "擦除")}</span>
           </label>
-        ))}
-        <label className={`studio-ink erase${ink === 0 ? " is-on" : ""}`}>
-          <input type="radio" name="ink" checked={ink === 0} onChange={() => setInk(0)} />
-          <span>{L("Erase", "擦除")}</span>
-        </label>
-        <button
-          type="button"
-          className="btn"
-          onClick={() => (play("tap"), setCells(empty(DESIGN_MAX_W, DESIGN_MAX_H)))}
-        >
-          {L("Clear", "清空")}
-        </button>
-      </div>
-      <div className="studio-swatches">
-        {SWATCHES.map((c) => (
           <button
-            key={c}
             type="button"
-            className="studio-swatch"
-            style={{ background: c }}
-            aria-label={c}
-            onClick={() => ink > 0 && setColours((cs) => cs.map((x, i) => (i === ink - 1 ? c : x)))}
-          />
-        ))}
+            className="btn"
+            onClick={() => (play("tap"), setCells(empty(DESIGN_MAX_W, DESIGN_MAX_H)))}
+          >
+            {L("Clear", "清空")}
+          </button>
+        </div>
+        <div className="studio-swatches">
+          {SWATCHES.map((c) => (
+            <button
+              key={c}
+              type="button"
+              className="studio-swatch"
+              style={{ background: c }}
+              aria-label={c}
+              onClick={() => ink > 0 && setColours((cs) => cs.map((x, i) => (i === ink - 1 ? c : x)))}
+            />
+          ))}
+        </div>
       </div>
       <div className="studio-row">
         <input
