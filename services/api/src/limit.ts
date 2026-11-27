@@ -1,21 +1,73 @@
+import { createHash, randomBytes } from "node:crypto";
+
+/** the counts a caller's window is kept in: each a sixteenth of it, so it runs 15/16 to 16/16 of its length (P10) */
+const SLOTS = 16;
+/** a table is never fuller than this, so a search for a caller ends within a few rows */
+const LOAD = 0.8;
+/** what a row holds: nothing, a caller, an IPv6 /64 caller, or a /48's share */
+const EMPTY = 0;
+const PLAIN = 1;
+const SUB = 2;
+const PREFIX = 3;
+/** callers are found by a keyed digest of their names, new each start, so no caller can steer where it lands */
+const SALT = randomBytes(16);
+
+const digestOf = (text: string): [number, number] => {
+  const d = createHash("sha256").update(SALT).update(text).digest();
+  return [d.readUInt32LE(0), d.readUInt32LE(4)];
+};
+
+/** a /64 caller's /48 (as prefixOf names it) and the /64's place in it; null for any other key */
+function sixtyFourOf(key: string): { prefix: string; at: number } | null {
+  const m = /^([0-9a-f]{1,4}):([0-9a-f]{1,4}):([0-9a-f]{1,4}):([0-9a-f]{1,4})::\/64$/.exec(key);
+  return m ? { prefix: `${m[1]}:${m[2]}:${m[3]}::/48`, at: parseInt(m[4] ?? "0", 16) } : null;
+}
+
 /**
  * A per-key sliding-window limiter: at most `max` requests per `windowMs`. It remembers at most `maxKeys` keys, so a
  * crowd of addresses each seen once cannot grow it without end, and no crowd can make it forget a key whose window
- * still runs (A113): a refused caller with nothing in its window is not remembered at all; when full, keys whose window
- * has passed are let go first, least recently seen first; and when every key is still in its window, a newcomer is
- * refused until one passes, rather than reset someone else's count. One IPv6 /48 cannot fill it: its share (A83) lets
- * it add at most `max x PREFIX_SHARE` keys in a window.
+ * still runs (A113): a refused caller with nothing in its window is not remembered at all; when full, a key whose window
+ * has passed makes room first; then a /64 key of the most crowded /48, whose requests its /48's share still counts
+ * (A140); and when neither frees a place, a newcomer is refused until one does, rather than reset someone else's count.
+ * One IPv6 /48 cannot fill it: its share (A83) lets it add at most `max x PREFIX_SHARE` keys in a window.
+ *
+ * P10: each key is a row of a table in typed arrays, found by a keyed digest of its name, and its window is sixteen
+ * counts, one a sixteenth of the window: a request counts for 15/16 to 16/16 of the window, so over many windows a key
+ * may make up to 16/15 of its limit, and in any 15/16 of a window no more than its limit. A list of request times took
+ * 275 bytes a key with one request and 6,958 with 600; a row takes 33 to 49 bytes whatever the key does.
  */
 export class RateLimiter {
-  /** key → its recent request times, ordered from the key seen least recently to the one seen most recently */
-  private readonly hits = new Map<string, number[]>();
-  /** each /48's /64 keys held here, oldest first (A140) */
-  private readonly subs = new Map<string, Set<string>>();
+  private readonly slotMs: number;
+  private readonly maxRows: number;
+  private rows = 0;
+  private mask = 0;
+  private h1 = new Uint32Array(0);
+  private h2 = new Uint32Array(0);
+  /** the newest sixteenth each row has counted in */
+  private newest = new Float64Array(0);
+  private kind = new Uint8Array(0);
+  private counts: Uint8Array | Uint16Array | Uint32Array = new Uint8Array(0);
+  private used = 0;
+  /** where the search for a row whose window has passed goes on from */
+  private cursor = 0;
+  /** a sixteenth in which that search found none: none can pass before the next one starts */
+  private noneIn = Number.NEGATIVE_INFINITY;
+  /** each /48's /64 keys held as keys of their own, by their place in it, oldest first (A140) */
+  private readonly subs = new Map<number, number[]>();
+  /** the /48s by how many /64 keys they hold, so the most crowded is found at once */
+  private readonly crowd: Array<Set<number>> = Array.from({ length: KEYS_PER_PREFIX + 1 }, () => new Set<number>());
+
   constructor(
     private readonly max: number,
     private readonly windowMs: number,
     private readonly maxKeys = 50_000,
-  ) {}
+  ) {
+    this.slotMs = windowMs / SLOTS;
+    let rows = 64;
+    while (rows * LOAD < maxKeys + 2) rows *= 2;
+    this.maxRows = rows;
+    this.resize(Math.min(64, rows));
+  }
 
   /**
    * One request from `key`; an IPv6 caller is also held to its /48's share (A83). A /48 holds at most KEYS_PER_PREFIX of
@@ -23,81 +75,225 @@ export class RateLimiter {
    * limiter with keys.
    */
   take(key: string, now = Date.now()): boolean {
-    const prefix = prefixOf(key);
-    const own = this.recent(key, now);
-    const shared = prefix === null ? null : this.recent(prefix, now);
-    const crowded = prefix !== null && !this.hits.has(key) && (this.subs.get(prefix)?.size ?? 0) >= KEYS_PER_PREFIX;
-    let ok = (crowded || own.length < this.max) && (shared === null || shared.length < this.max * PREFIX_SHARE);
+    const slot = Math.floor(now / this.slotMs);
+    const six = sixtyFourOf(key);
+    let k1: number;
+    let k2: number;
+    let p1 = 0;
+    let p2 = 0;
+    let net = 0;
+    if (six) {
+      [p1, p2] = digestOf(six.prefix);
+      // a /48's row and its /64s' rows share 48 bits of digest, so a /64's row names its /48
+      p2 = (p2 & 0xffff0000) >>> 0;
+      net = p1 * 65_536 + (p2 >>> 16);
+      k1 = p1;
+      k2 = (p2 | six.at) >>> 0;
+    } else [k1, k2] = digestOf(key);
+    const kind = six ? SUB : PLAIN;
+    let own = this.find(k1, k2, kind);
+    let shared = six ? this.find(p1, p2, PREFIX) : -1;
+    const crowded = six !== null && own < 0 && (this.subs.get(net)?.length ?? 0) >= KEYS_PER_PREFIX;
+    const mine = own < 0 ? 0 : this.inWindow(own, slot);
+    const theirs = shared < 0 ? 0 : this.inWindow(shared, slot);
+    if (!((crowded || mine < this.max) && (six === null || theirs < this.max * PREFIX_SHARE))) return false;
     // a key that would be new needs a free place: one whose window has passed, or one from the most crowded /48
-    if (ok && !this.room(crowded ? null : key, prefix, now)) ok = false;
-    if (ok) {
-      if (!crowded) own.push(now);
-      shared?.push(now);
+    const adding = (!crowded && own < 0 ? 1 : 0) + (six && shared < 0 ? 1 : 0);
+    if (adding) {
+      const spare = (i: number) =>
+        (this.kind[i] === kind && this.h1[i] === k1 && this.h2[i] === k2) ||
+        (six !== null && this.kind[i] === PREFIX && this.h1[i] === p1 && this.h2[i] === p2);
+      if (!this.room(adding, slot, spare)) return false;
+      // making room moves rows: they are found again
+      own = this.find(k1, k2, kind);
+      shared = six ? this.find(p1, p2, PREFIX) : -1;
     }
-    if (!crowded) this.keep(key, own, ok);
-    if (prefix !== null) this.keep(prefix, shared!, ok);
-    return ok;
-  }
-
-  private recent(key: string, now: number): number[] {
-    const held = this.hits.get(key);
-    return held ? held.filter((t) => now - t < this.windowMs) : [];
-  }
-
-  /**
-   * Whether every key this request would add fits: keys whose window has passed go first, least recently counted first;
-   * then a /64 key of the /48 holding the most, whose requests its /48's share still counts (A140). Only when neither
-   * frees a place is a newcomer turned away, and never by forgetting a count that still holds (A113).
-   */
-  private room(key: string | null, prefix: string | null, now: number): boolean {
-    const adding = (key !== null && !this.hits.has(key) ? 1 : 0) + (prefix !== null && !this.hits.has(prefix) ? 1 : 0);
-    if (this.hits.size + adding <= this.maxKeys) return true;
-    for (const [k, times] of this.hits) {
-      if (this.hits.size + adding <= this.maxKeys) break;
-      if (times.some((t) => now - t < this.windowMs)) break;
-      this.drop(k);
+    if (six) {
+      if (shared < 0) shared = this.insert(p1, p2, PREFIX, slot);
+      this.count(shared, slot);
     }
-    while (this.hits.size + adding > this.maxKeys) {
-      let most: Set<string> | null = null;
-      for (const keys of this.subs.values()) if (keys.size > 1 && (!most || keys.size > most.size)) most = keys;
-      if (!most) break;
-      this.drop(most.values().next().value!);
-    }
-    return this.hits.size + adding <= this.maxKeys;
-  }
-
-  /** lets go of a key, and of its place among its /48's /64 keys */
-  private drop(key: string): void {
-    this.hits.delete(key);
-    const prefix = prefixOf(key);
-    const keys = prefix === null ? undefined : this.subs.get(prefix);
-    if (keys) {
-      keys.delete(key);
-      if (!keys.size) this.subs.delete(prefix!);
-    }
-  }
-
-  /**
-   * A key with nothing in its window is let go rather than kept. A request that counted moves its key to the
-   * most-recent end; a refused one leaves it where it is, so the order is always the order of last counted requests.
-   */
-  private keep(key: string, times: number[], counted: boolean): void {
-    if (!times.length) this.drop(key);
-    else if (counted) {
-      this.hits.delete(key);
-      this.hits.set(key, times);
-      const prefix = prefixOf(key);
-      if (prefix !== null) {
-        const keys = this.subs.get(prefix) ?? new Set<string>();
-        keys.add(key);
-        this.subs.set(prefix, keys);
+    if (!crowded) {
+      if (own < 0) {
+        own = this.insert(k1, k2, kind, slot);
+        if (six) this.held(net, six.at, 1);
       }
-    } else if (this.hits.has(key)) this.hits.set(key, times);
+      this.count(own, slot);
+    }
+    return true;
   }
 
   /** How many keys are remembered. */
   size(): number {
-    return this.hits.size;
+    return this.used;
+  }
+
+  private resize(rows: number): void {
+    const old = {
+      rows: this.rows,
+      h1: this.h1,
+      h2: this.h2,
+      newest: this.newest,
+      kind: this.kind,
+      counts: this.counts,
+    };
+    this.rows = rows;
+    this.mask = rows - 1;
+    this.h1 = new Uint32Array(rows);
+    this.h2 = new Uint32Array(rows);
+    this.newest = new Float64Array(rows);
+    this.kind = new Uint8Array(rows);
+    const most = this.max * PREFIX_SHARE;
+    const n = rows * SLOTS;
+    this.counts = most <= 0xff ? new Uint8Array(n) : most <= 0xffff ? new Uint16Array(n) : new Uint32Array(n);
+    for (let i = 0; i < old.rows; i++) {
+      const k = old.kind[i] ?? EMPTY;
+      if (k === EMPTY) continue;
+      const a = old.h1[i] ?? 0;
+      const b = old.h2[i] ?? 0;
+      let j = this.home(a, b);
+      while (this.kind[j] !== EMPTY) j = (j + 1) & this.mask;
+      this.h1[j] = a;
+      this.h2[j] = b;
+      this.newest[j] = old.newest[i] ?? 0;
+      this.kind[j] = k;
+      this.counts.set(old.counts.subarray(i * SLOTS, i * SLOTS + SLOTS), j * SLOTS);
+    }
+    this.cursor = 0;
+  }
+
+  private home(a: number, b: number): number {
+    let x = Math.imul(a ^ Math.imul(b, 0x9e3779b1), 0x85ebca6b);
+    x ^= x >>> 15;
+    return (x >>> 0) & this.mask;
+  }
+
+  private find(a: number, b: number, kind: number): number {
+    for (let i = this.home(a, b); ; i = (i + 1) & this.mask) {
+      const k = this.kind[i] ?? EMPTY;
+      if (k === EMPTY) return -1;
+      if (k === kind && this.h1[i] === a && this.h2[i] === b) return i;
+    }
+  }
+
+  private insert(a: number, b: number, kind: number, slot: number): number {
+    let i = this.home(a, b);
+    while (this.kind[i] !== EMPTY) i = (i + 1) & this.mask;
+    this.h1[i] = a;
+    this.h2[i] = b;
+    this.kind[i] = kind;
+    this.newest[i] = slot;
+    this.counts.fill(0, i * SLOTS, i * SLOTS + SLOTS);
+    this.used++;
+    return i;
+  }
+
+  /** the requests a row counts in the window ending in sixteenth `slot` */
+  private inWindow(i: number, slot: number): number {
+    const n = this.newest[i] ?? 0;
+    if (slot - n >= SLOTS) return 0;
+    let sum = 0;
+    for (let s = Math.max(n, slot) - SLOTS + 1; s <= n; s++) sum += this.counts[i * SLOTS + (s % SLOTS)] ?? 0;
+    return sum;
+  }
+
+  private count(i: number, slot: number): void {
+    const n = this.newest[i] ?? 0;
+    if (slot > n) {
+      // the sixteenths that passed since the row last counted are empty
+      if (slot - n >= SLOTS) this.counts.fill(0, i * SLOTS, i * SLOTS + SLOTS);
+      else for (let s = n + 1; s <= slot; s++) this.counts[i * SLOTS + (s % SLOTS)] = 0;
+      this.newest[i] = slot;
+    }
+    const at = i * SLOTS + (Math.max(slot, n) % SLOTS);
+    this.counts[at] = (this.counts[at] ?? 0) + 1;
+  }
+
+  private passed(i: number, slot: number): boolean {
+    return slot - (this.newest[i] ?? 0) >= SLOTS;
+  }
+
+  /** notes a /64 key of `net` taken (+1) or let go (-1), and where `net` stands among the crowded */
+  private held(net: number, at: number, by: 1 | -1): void {
+    const list = this.subs.get(net) ?? [];
+    this.crowd[list.length]?.delete(net);
+    const was = list.indexOf(at);
+    if (by > 0) list.push(at);
+    else if (was >= 0) list.splice(was, 1);
+    if (list.length) {
+      this.subs.set(net, list);
+      this.crowd[list.length]?.add(net);
+    } else this.subs.delete(net);
+  }
+
+  /**
+   * Whether every key this request would add fits: the table grows while it may; then rows whose window has passed go
+   * first; then a /64 key of the /48 holding the most, whose requests its /48's share still counts (A140). Only when
+   * neither frees a place is a newcomer turned away, and never by forgetting a count that still holds (A113). A /48's
+   * row, and an IPv4 caller's row, go only once their window has passed.
+   */
+  private room(adding: number, slot: number, spare: (i: number) => boolean): boolean {
+    while (this.used + adding > this.rows * LOAD && this.rows < this.maxRows) this.resize(this.rows * 2);
+    if (this.used + adding <= this.maxKeys) return true;
+    if (slot !== this.noneIn) {
+      for (let seen = 0; seen < this.rows && this.used + adding > this.maxKeys; ) {
+        const i = this.cursor;
+        const k = this.kind[i] ?? EMPTY;
+        const lettable =
+          k !== EMPTY &&
+          !spare(i) &&
+          this.passed(i, slot) &&
+          !(k === PREFIX && this.subs.has((this.h1[i] ?? 0) * 65_536 + ((this.h2[i] ?? 0) >>> 16)));
+        // a row let go may have a row moved back into its place: that one is looked at next
+        if (lettable) this.remove(i);
+        else {
+          this.cursor = (i + 1) & this.mask;
+          seen++;
+        }
+      }
+      if (this.used + adding > this.maxKeys) this.noneIn = slot;
+    }
+    while (this.used + adding > this.maxKeys) {
+      const i = this.crowdedSub(spare);
+      if (i < 0) break;
+      this.remove(i);
+    }
+    return this.used + adding <= this.maxKeys;
+  }
+
+  /** a /64 row of the /48 holding the most /64 keys (more than one), oldest first; -1 when there is none */
+  private crowdedSub(spare: (i: number) => boolean): number {
+    for (let n = KEYS_PER_PREFIX; n >= 2; n--)
+      for (const net of this.crowd[n] ?? []) {
+        const a = Math.floor(net / 65_536);
+        for (const at of this.subs.get(net) ?? []) {
+          const i = this.find(a, ((net % 65_536) * 65_536 + at) >>> 0, SUB);
+          if (i >= 0 && !spare(i)) return i;
+        }
+      }
+    return -1;
+  }
+
+  /** lets go of a row, and of its place among its /48's /64 keys; the rows after it move back to keep searches whole */
+  private remove(i: number): void {
+    if (this.kind[i] === SUB) {
+      const b = this.h2[i] ?? 0;
+      this.held((this.h1[i] ?? 0) * 65_536 + (b >>> 16), b & 0xffff, -1);
+    }
+    let hole = i;
+    for (let j = (i + 1) & this.mask; this.kind[j] !== EMPTY; j = (j + 1) & this.mask) {
+      const home = this.home(this.h1[j] ?? 0, this.h2[j] ?? 0);
+      // the row at j stays when its home lies after the hole and no later than j, going round the table
+      const stays = hole < j ? home > hole && home <= j : home > hole || home <= j;
+      if (stays) continue;
+      this.h1[hole] = this.h1[j] ?? 0;
+      this.h2[hole] = this.h2[j] ?? 0;
+      this.newest[hole] = this.newest[j] ?? 0;
+      this.kind[hole] = this.kind[j] ?? EMPTY;
+      this.counts.copyWithin(hole * SLOTS, j * SLOTS, j * SLOTS + SLOTS);
+      hole = j;
+    }
+    this.kind[hole] = EMPTY;
+    this.used--;
   }
 }
 

@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { bytesEach } from "./heap";
 import { FairCeiling, KEYS_PER_PREFIX, PREFIX_SHARE, RateLimiter, heldOver, prefixOf } from "../src/limit";
 
 describe("the per-address limiter", () => {
@@ -168,5 +169,85 @@ describe("a ceiling for everyone is shared fairly (A83)", () => {
       if (c.take("2001:db8:99:1::/64", t)) later++;
     }
     expect(honest + later, "the two players were served").toBeGreaterThan(400);
+  });
+});
+
+describe("each caller's window kept as sixteen counts in a table of fixed rows (P10)", () => {
+  const HOUR = 3_600_000;
+  const sub = (net: number, i: number) => `2001:db8:${(0x1500 + net).toString(16)}:${i.toString(16)}::/64`;
+
+  it("never lets a caller past its limit in any fifteen-sixteenths of the window, nor past 16/15 of it over many", () => {
+    const max = 30;
+    const l = new RateLimiter(max, 60_000);
+    const took: number[] = [];
+    // a request every 100 ms for ten windows
+    for (let t = 0; t < 600_000; t += 100) if (l.take("hot", t)) took.push(t);
+    const span = (60_000 * 15) / 16;
+    let worst = 0;
+    for (let i = 0, j = 0; i < took.length; i++) {
+      while ((took[i] ?? 0) - (took[j] ?? 0) >= span) j++;
+      worst = Math.max(worst, i - j + 1);
+    }
+    expect(worst).toBeLessThanOrEqual(max);
+    expect(took.length).toBeGreaterThanOrEqual(10 * max);
+    expect(took.length).toBeLessThanOrEqual(Math.ceil((10 * 16 * max) / 15) + max);
+  });
+
+  it("a caller's count holds until its whole window has passed", () => {
+    const l = new RateLimiter(3, 60_000);
+    expect([0, 1, 2, 3].map((t) => l.take("a", t))).toEqual([true, true, true, false]);
+    expect(l.take("a", 55_000), "still inside its window").toBe(false);
+    expect(l.take("a", 60_001), "its window has passed").toBe(true);
+  });
+
+  it("holds 50,000 callers in under 80 bytes each, not a list of times each", async () => {
+    const [each, l] = await bytesEach(
+      50_000,
+      () => new RateLimiter(240, HOUR),
+      (it) => {
+        for (let i = 0; i < 50_000; i++) it.take(`10.${i >> 16}.${(i >> 8) & 255}.${i & 255}`, i);
+      },
+    );
+    expect(l.size()).toBe(50_000);
+    // a list of times took 275 bytes a caller with one request, 830 with sixty
+    expect(each).toBeLessThan(80);
+  });
+
+  it("a /64 let go to make room comes back held by its /48's share, however often it is let go", () => {
+    const l = new RateLimiter(5, HOUR, 20);
+    let t = 0;
+    let fromNet = 0;
+    // one /48's sixteen /64s, and three IPv4 callers: the door is full
+    for (let i = 0; i < KEYS_PER_PREFIX; i++) if (l.take(sub(3, i), t++)) fromNet++;
+    for (let i = 0; i < 3; i++) l.take(`10.150.0.${i}`, t++);
+    expect(l.size()).toBe(20);
+    let newcomers = 0;
+    for (let r = 0; r < 200; r++) {
+      if (l.take(`10.151.${r >> 8}.${r & 255}`, t++)) newcomers++;
+      // the /48 keeps coming back from the /64s it was made to let go, each a fresh key of its own
+      for (let k = 0; k < 5; k++) if (l.take(sub(3, r % KEYS_PER_PREFIX), t++)) fromNet++;
+    }
+    expect(newcomers, "the full door made room for newcomers").toBeGreaterThan(0);
+    expect(fromNet, "never past the /48's share").toBeLessThanOrEqual(5 * PREFIX_SHARE);
+  });
+
+  it("never lets go of an IPv4 caller with a count in its window to make room", () => {
+    const l = new RateLimiter(2, HOUR, 10);
+    let t = 0;
+    for (let i = 0; i < 7; i++)
+      expect([l.take(`10.160.0.${i}`, t++), l.take(`10.160.0.${i}`, t++)]).toEqual([true, true]);
+    for (const i of [1, 2]) expect(l.take(sub(4, i), t++)).toBe(true);
+    expect(l.size()).toBe(10);
+    // room is made from the /48's /64s, never from an IPv4 caller
+    expect(l.take("10.161.0.1", t++)).toBe(true);
+    for (let i = 0; i < 100; i++) l.take(`10.162.0.${i}`, t++);
+    for (let i = 0; i < 7; i++) expect(l.take(`10.160.0.${i}`, t++), "its count holds").toBe(false);
+  });
+
+  it("a door full of IPv4 callers in their window turns a newcomer away until a window passes: the accepted limit", () => {
+    const l = new RateLimiter(2, HOUR, 10);
+    for (let i = 0; i < 10; i++) expect(l.take(`10.170.0.${i}`, i)).toBe(true);
+    for (let i = 0; i < 100; i++) expect(l.take(`10.171.0.${i}`, 100 + i)).toBe(false);
+    expect(l.take("10.171.1.1", HOUR + 1_000)).toBe(true);
   });
 });
