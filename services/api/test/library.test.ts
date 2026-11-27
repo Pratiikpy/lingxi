@@ -3,6 +3,10 @@ import { Hono } from "hono";
 import { PET_SCHOOL } from "@lingxi/game";
 import { cleanAuthor, createLibrary, lessonKey } from "../src/library";
 import { withLibrary } from "../src/server";
+import { mkdtempSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { bytesEach } from "./heap";
 
 const share = PET_SCHOOL[0]!.rule;
 const other = PET_SCHOOL[1]!.rule;
@@ -182,5 +186,65 @@ describe("a full library makes room instead of closing (A64)", () => {
     expect(lib.has(lessonKey(rules[1]!))).toBe(true);
     expect(lib.has(lessonKey(rules[2]!)), "the lesson five learned stays").toBe(true);
     expect(lib.has(lessonKey(rules[3]!))).toBe(true);
+  });
+});
+
+describe("a lesson's seen-sets, compact in memory (P10)", () => {
+  const ip = (k: number) => `10.${(k >> 16) & 255}.${(k >> 8) & 255}.${k & 255}`;
+  const rule = (i: number) => {
+    const v = (x: number) => [x % 4];
+    return {
+      when: { hunger: v(i), joy: v(i >> 2), energy: v(i >> 4), clean: v(i >> 6) },
+      then: { want: (i >> 8) % 6, mood: (i >> 3) % 4 },
+    };
+  };
+
+  it("holds a lesson at its largest in under 11 KB: both sets exact at 256 (24.7 KB as strings), or both filters", async () => {
+    const n = 100;
+    const keys: string[] = [];
+    const learn = (l: ReturnType<typeof createLibrary>, from: number, to: number) => {
+      for (const key of keys)
+        for (let u = from; u < to; u++) {
+          // the sharer is the first learner: 255 more fill the learners' exact set, 256 the reports'
+          if (u < 255 || to > 256) l.use(key, ip(1_000_000 + u));
+          l.report(key, ip(2_000_000 + u));
+        }
+    };
+    const [exact, lib] = await bytesEach(
+      n,
+      () => createLibrary(undefined, { max: n, perSharer: 1_000 }),
+      (l) => {
+        for (let i = 0; keys.length < n; i++) {
+          const r = l.share(rule(i) as never, "Mochi", "10.9.0.1", 1);
+          if (r.ok && r.isNew) keys.push(r.key);
+        }
+        learn(l, 0, 256);
+      },
+    );
+    expect(lib.size()).toBe(n);
+    expect(exact).toBeLessThan(11_000);
+    // a few more of each: both sets become filters
+    const [more] = await bytesEach(
+      n,
+      () => lib,
+      (l) => learn(l, 256, 266),
+    );
+    expect(exact + more).toBeLessThan(11_000);
+  });
+
+  it("writes and reads back the same file: every set as it was kept before", async () => {
+    const file = join(mkdtempSync(join(tmpdir(), "lib-p10-")), "library.json");
+    const lib = createLibrary(file);
+    const r = lib.share(rule(1) as never, "Mochi", "10.9.0.1", 1);
+    if (!r.ok) throw new Error("share");
+    for (let u = 0; u < 300; u++) lib.use(r.key, ip(3_000_000 + u));
+    lib.report(r.key, ip(4_000_000));
+    // the store is written once a burst is over
+    await new Promise((done) => setTimeout(done, 2_500));
+    const back = createLibrary(file);
+    expect(back.list()).toEqual(lib.list());
+    // one learner more counts once, one learner again not at all, in the copy read back
+    expect(back.use(r.key, ip(3_000_000))).toBe(true);
+    expect(back.list()[0]?.uses).toBe(lib.list()[0]?.uses);
   });
 });

@@ -17,7 +17,7 @@
 import { createHash } from "node:crypto";
 import type { Rule } from "@lingxi/brain";
 import { checkLesson } from "@lingxi/game";
-import { type SeenSet, addSeen, emptySeen, hasSeen, seenFrom } from "./seenSet";
+import { SeenBits, type SeenSet, emptySeen, seenFrom } from "./seenSet";
 import { BLOCKED_WORDS } from "./words";
 import { prefixOf } from "./limit";
 import { hasStore, readStore, saveJson } from "./durable";
@@ -31,11 +31,14 @@ export interface LibraryEntry {
   by: string;
   firstAt: number;
   uses: number;
-  /** who reported it, as keyed ids (never the raw address), in a set of fixed size */
-  reports: SeenSet;
+  /**
+   * who reported it, as keyed ids (never the raw address), in a set of fixed size: compact in memory (SeenBits, P10), and
+   * written to the file as the SeenSet it always was
+   */
+  reports: SeenBits;
   reportCount: number;
-  /** who already counted a use, so one player can't inflate it, in a set of fixed size */
-  users: SeenSet;
+  /** who already counted a use, so one player can't inflate it, in a set of fixed size (as `reports`) */
+  users: SeenBits;
   /** who shared it, as a keyed id; absent on lessons shared before it was kept */
   from?: string;
   /** "keyed" once its ids are keyed codes (P6a); absent on a lesson kept before, whose ids are coded on load */
@@ -111,7 +114,14 @@ function keyedSet(s: SeenSet): SeenSet {
 }
 
 /** Whether `who` is in `s`, by its keyed id or, in a filter filled before ids were keyed, by its plain id. */
-const seenIn = (s: SeenSet, who: string) => hasSeen(s, hashId(who)) || (s.legacy === true && hasSeen(s, plainId(who)));
+const seenIn = (s: SeenBits, who: string) => s.has(hashId(who)) || (s.legacy && s.has(plainId(who)));
+
+/** A set holding `id` alone. */
+const seenBy = (id: string): SeenBits => {
+  const b = SeenBits.from(emptySeen());
+  b.add(id);
+  return b;
+};
 
 export function createLibrary(store?: string, limits: { max?: number; perSharer?: number } = {}) {
   const max = limits.max ?? MAX_ENTRIES;
@@ -121,7 +131,9 @@ export function createLibrary(store?: string, limits: { max?: number; perSharer?
   if (store && hasStore(store)) {
     try {
       // labels stored before they were dropped are dropped on load, and plain lists become fixed-size sets
-      for (const e of readStore(store) as Array<LibraryEntry & { reports: unknown; users: unknown }>) {
+      for (const e of readStore(store) as Array<
+        Omit<LibraryEntry, "reports" | "users"> & { reports: unknown; users: unknown }
+      >) {
         let reports = seenFrom(e.reports);
         let users = seenFrom(e.users);
         let from = e.from;
@@ -137,9 +149,9 @@ export function createLibrary(store?: string, limits: { max?: number; perSharer?
         entries.set(e.key, {
           ...e,
           rule: { when: e.rule.when, then: e.rule.then } as Rule,
-          reports,
+          reports: SeenBits.from(reports),
           reportCount,
-          users,
+          users: SeenBits.from(users),
           ...(from !== undefined ? { from } : {}),
           ids: "keyed",
         });
@@ -232,9 +244,9 @@ export function createLibrary(store?: string, limits: { max?: number; perSharer?
         by: author,
         firstAt: now,
         uses: 1,
-        reports: emptySeen(),
+        reports: SeenBits.from(emptySeen()),
         reportCount: 0,
-        users: addSeen(emptySeen(), from),
+        users: seenBy(from),
         from,
         lastAt: now,
         ids: "keyed",
@@ -248,7 +260,9 @@ export function createLibrary(store?: string, limits: { max?: number; perSharer?
       if (!e) return false;
       const h = hashId(who);
       if (seenIn(e.users, who)) return true;
-      entries.set(key, { ...e, users: addSeen(e.users, h), uses: e.uses + 1, lastAt: now });
+      // the set changes in place: it is this record's alone (SeenBits)
+      e.users.add(h);
+      entries.set(key, { ...e, uses: e.uses + 1, lastAt: now });
       save();
       return true;
     },
@@ -257,7 +271,8 @@ export function createLibrary(store?: string, limits: { max?: number; perSharer?
       if (!e) return false;
       const h = hashId(who);
       if (!seenIn(e.reports, who)) {
-        entries.set(key, { ...e, reports: addSeen(e.reports, h), reportCount: e.reportCount + 1 });
+        e.reports.add(h);
+        entries.set(key, { ...e, reportCount: e.reportCount + 1 });
         save();
       }
       return true;
