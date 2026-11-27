@@ -19,6 +19,9 @@ export interface Summary {
   steps: Array<{
     step: string;
     floorMB: number;
+    /** of the floor, the heap and the array buffers (results before these were kept read the heap alone) */
+    heapMB?: number;
+    buffersMB?: number;
     addedMB: number;
     cap?: string;
     door?: string;
@@ -107,11 +110,16 @@ export function render(s: Summary): string {
   );
   if (s.stopped) add(`STOPPED: ${s.stopped}`);
   add();
-  add("The fill: the heap's floor (collected, with the event loop let turn) after each step, and what the step added");
-  add(`${"step".padEnd(14)} ${"floor MB".padStart(9)} ${"added MB".padStart(9)} ${"seconds".padStart(8)}`);
+  add(
+    "The fill: the floor (collected, with the event loop let turn) after each step, and what the step added; the floor is the heap and the array buffers beside it",
+  );
+  add(
+    `${"step".padEnd(14)} ${"floor MB".padStart(9)} ${"heap MB".padStart(9)} ${"buffers".padStart(9)} ${"added MB".padStart(9)} ${"seconds".padStart(8)}`,
+  );
   for (const st of s.steps) {
+    const part = (x: number | undefined) => (x === undefined ? "" : f1(x)).padStart(9);
     add(
-      `${st.step.padEnd(14)} ${f1(st.floorMB).padStart(9)} ${f1(st.addedMB).padStart(9)} ${(st.seconds === undefined ? "" : f1(st.seconds)).padStart(8)}${st.error ? `  FAILED: ${st.error.split("\n")[0]}` : ""}`,
+      `${st.step.padEnd(14)} ${f1(st.floorMB).padStart(9)} ${part(st.heapMB)} ${part(st.buffersMB)} ${f1(st.addedMB).padStart(9)} ${(st.seconds === undefined ? "" : f1(st.seconds)).padStart(8)}${st.error ? `  FAILED: ${st.error.split("\n")[0]}` : ""}`,
     );
     if (st.cap) add(`               cap: ${st.cap}`);
     if (st.door) add(`               door: ${st.door}`);

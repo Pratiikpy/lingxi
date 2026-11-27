@@ -8,7 +8,15 @@ import { existsSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
-import { FLOOR_SHARE_PER_HOUR, MB, type Sample, judge, leastSquares, samplesCsv } from "./lib/memoryBound.mts";
+import {
+  FLOOR_SHARE_PER_HOUR,
+  MB,
+  type Sample,
+  fillSteps,
+  judge,
+  leastSquares,
+  samplesCsv,
+} from "./lib/memoryBound.mts";
 import { QUICK } from "./lib/memoryWorld.mts";
 import { SERVER_LIMITERS, type Summary, bytesPerKey, limiterCeiling, render } from "./lib/memoryReport.mts";
 
@@ -67,6 +75,25 @@ describe("the pass rule (scripts/lib/memoryBound.mts)", () => {
     // ten 2-second samples: the last five span 8 s, so 2 MB over them is 900 MB/h
     expect(judge(series(10, 2, (t) => 100 + t / 8)).pass).toBe(true);
     expect(judge(series(10, 2, (t) => 100 + t)).pass).toBe(false);
+  });
+
+  it("counts what typed arrays hold beside the heap: a floor rising only in array buffers fails", () => {
+    const inBuffers = series(100, 30, () => 800).map((x) => ({ ...x, arrayBuffers: (x.t / 36) * MB }));
+    const v = judge(inBuffers);
+    expect(v.pass).toBe(false);
+    expect(v.slopeMBPerHour).toBeCloseTo(100, 6);
+    const steps = fillSteps(
+      [10, 30].map((mb, i) => ({
+        ...series(1, 30, () => mb)[0],
+        phase: "fill" as const,
+        step: `s${i}`,
+        arrayBuffers: mb * MB,
+      })) as Sample[],
+    );
+    expect(steps.map((x) => [x.floorMB, x.heapMB, x.buffersMB, x.addedMB])).toEqual([
+      [20, 10, 10, 0],
+      [60, 30, 30, 40],
+    ]);
   });
 
   it("will not judge fewer than four churn samples", () => {

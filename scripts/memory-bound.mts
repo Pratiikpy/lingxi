@@ -9,7 +9,8 @@
  *
  * Options: --churn <s> (seconds of churn), --every <s> (between samples), --out <dir> (default e2e/.run/memory-bound/
  * <time>), --no-probes, --keep-stores (the scratch stores are removed at the end otherwise). Each run writes samples.csv,
- * samples.json, summary.json and summary.txt in <out>; `--render <dir>` writes a result folder's summary.txt again.
+ * samples.json, summary.json and summary.txt in <out>; `--render <dir>` works a result folder's fill steps and verdict
+ * out again from its samples, by today's rule, and writes its summary.json and summary.txt again.
  *
  * Nothing here reaches the network or the live server's data: every store is in <out>/stores, the chain, the model and
  * the push service are stand-ins in this process (scripts/lib/memoryWorld.mts), and the routes that would call the
@@ -20,7 +21,7 @@ import { execFileSync } from "node:child_process";
 import { mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { freemem } from "node:os";
 import { join, resolve } from "node:path";
-import { MB, type Sample, fillSteps, floorNow, judge, samplesCsv } from "./lib/memoryBound.mts";
+import { MB, type Sample, fillSteps, floorNow, heldOf, judge, samplesCsv } from "./lib/memoryBound.mts";
 import type { Ctx } from "./lib/memoryFill.mts";
 import { type Summary, render } from "./lib/memoryReport.mts";
 
@@ -38,10 +39,15 @@ const value = (name: string): string | undefined => {
 const rendering = value("--render");
 if (rendering !== undefined) {
   const dir = resolve(rendering);
-  writeFileSync(
-    join(dir, "summary.txt"),
-    render(JSON.parse(readFileSync(join(dir, "summary.json"), "utf8")) as Summary),
-  );
+  const kept = JSON.parse(readFileSync(join(dir, "summary.json"), "utf8")) as Summary;
+  const read = JSON.parse(readFileSync(join(dir, "samples.json"), "utf8")) as Sample[];
+  const again: Summary = {
+    ...kept,
+    steps: fillSteps(read).map((f) => ({ ...(kept.steps.find((s) => s.step === f.step) ?? {}), ...f })),
+    verdict: read.filter((s) => s.phase === "churn").length >= 4 ? judge(read) : null,
+  };
+  writeFileSync(join(dir, "summary.json"), JSON.stringify(again, null, 2));
+  writeFileSync(join(dir, "summary.txt"), render(again));
   process.stdout.write(`${join(dir, "summary.txt")}
 `);
   process.exit(0);
@@ -159,7 +165,7 @@ const sample = async (phase: Sample["phase"], step: string): Promise<Sample> => 
   };
   samples.push(s);
   log(
-    `${s.t.toFixed(0).padStart(6)} s  ${phase.padEnd(5)} ${step.padEnd(14)} floor ${(m.heapUsed / MB).toFixed(1).padStart(8)} MB  rss ${(m.rss / MB).toFixed(0).padStart(5)} MB`,
+    `${s.t.toFixed(0).padStart(6)} s  ${phase.padEnd(5)} ${step.padEnd(14)} floor ${(heldOf(m) / MB).toFixed(1).padStart(8)} MB  heap ${(m.heapUsed / MB).toFixed(1).padStart(8)} MB  rss ${(m.rss / MB).toFixed(0).padStart(5)} MB`,
   );
   return s;
 };

@@ -8,6 +8,10 @@
  * new Request (hono's bodyLimit, for a body sent without a length) is let go only by a finalizer, which runs as a task
  * after a collection; read with no turn, 10,000 such requests read as 7.8 MB kept, and after two turns as none
  * (measured 2026-11-27, in process and over HTTP alike).
+ *
+ * What is kept is the heap and the ArrayBuffers beside it: the backing stores of typed arrays and Buffers, which V8 keeps
+ * outside its heap (process.memoryUsage().arrayBuffers). Several stores keep their data in typed arrays (the rate
+ * limiters' tables, the library's seen sets, P10), so the floor counts both, and the report shows each.
  */
 
 /** One reading of the process's memory, in bytes, and of each store's size. */
@@ -28,6 +32,9 @@ export interface Sample {
 }
 
 export const MB = 1024 * 1024;
+
+/** What a sample says the process keeps: its heap, and the array buffers beside it. */
+export const heldOf = (s: Pick<Sample, "heapUsed" | "arrayBuffers">): number => s.heapUsed + s.arrayBuffers;
 
 /** Collections with the event loop let turn between them: two were measured to be enough, three are taken. */
 export const SETTLE_ROUNDS = 3;
@@ -111,7 +118,7 @@ export function judge(samples: readonly Sample[]): Verdict {
   if (churn.length < 4)
     throw new Error(`the churn has ${churn.length} samples: at least 4 are needed to judge a slope`);
   const judged = churn.slice(Math.floor(churn.length / 2));
-  const points = judged.map((s) => [s.t / 3600, s.heapUsed / MB] as const);
+  const points = judged.map((s) => [s.t / 3600, heldOf(s) / MB] as const);
   const fit = leastSquares(points);
   // at least two samples are judged (half of four or more), so each end is there
   const at = (list: readonly Sample[], i: number): Sample => list[Math.max(0, Math.min(list.length - 1, i))] as Sample;
@@ -126,9 +133,9 @@ export function judge(samples: readonly Sample[]): Verdict {
     judged: judged.length,
     fromS,
     toS,
-    firstFloorMB: at(churn, 0).heapUsed / MB,
-    middleFloorMB: at(churn, Math.floor(churn.length / 2)).heapUsed / MB,
-    lastFloorMB: at(churn, churn.length - 1).heapUsed / MB,
+    firstFloorMB: heldOf(at(churn, 0)) / MB,
+    middleFloorMB: heldOf(at(churn, Math.floor(churn.length / 2))) / MB,
+    lastFloorMB: heldOf(at(churn, churn.length - 1)) / MB,
     meanFloorMB,
     slopeMBPerHour: fit.slope,
     residualSdMB: fit.residualSd,
@@ -162,12 +169,16 @@ export function samplesCsv(samples: readonly Sample[]): string {
   return `${[...head, ...stores.map((k) => `size:${k}`)].join(",")}\n${rows.join("\n")}\n`;
 }
 
-/** What the heap gained at each fill step: the floor after it, less the floor before it. */
-export function fillSteps(samples: readonly Sample[]): Array<{ step: string; floorMB: number; addedMB: number }> {
+/** What each fill step added: the floor (heap and array buffers) after it, less the floor before it. */
+export function fillSteps(
+  samples: readonly Sample[],
+): Array<{ step: string; floorMB: number; heapMB: number; buffersMB: number; addedMB: number }> {
   const fill = samples.filter((s) => s.phase === "fill");
   return fill.map((s, i) => ({
     step: s.step,
-    floorMB: s.heapUsed / MB,
-    addedMB: (s.heapUsed - (fill[i - 1] ?? s).heapUsed) / MB,
+    floorMB: heldOf(s) / MB,
+    heapMB: s.heapUsed / MB,
+    buffersMB: s.arrayBuffers / MB,
+    addedMB: (heldOf(s) - heldOf(fill[i - 1] ?? s)) / MB,
   }));
 }
