@@ -71,6 +71,12 @@ for (const look of LOOKS) {
     await check("hatch");
     await hatch(p);
     await check("room");
+    // R52: the knowledge card is described by its rules, so a screen reader says them on the Tab in either mode
+    const card = page.locator("[role=region][aria-labelledby=mindcard-h]");
+    if (await card.isVisible())
+      await expect(card, "the knowledge card's description is its rules").toHaveAccessibleDescription(
+        look.lang === "zh" ? /，就/ : /, then /,
+      );
     await expect(page.locator("main"), "one main landmark in the room").toHaveCount(1);
     await expect(page.locator("h1"), "one level-one heading in the room").toHaveCount(1);
     for (const tab of ["me", "mind"]) {

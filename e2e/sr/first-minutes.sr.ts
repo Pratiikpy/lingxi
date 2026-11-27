@@ -109,6 +109,7 @@ for (const look of [
       let afterHatch = "";
       let cardTries = 0;
       let cardWay = "";
+      let onTab = false;
 
       try {
         // hatch: an egg, an instinct, a name typed through NVDA, and the hatch button
@@ -166,7 +167,11 @@ for (const look of [
         // what the pet knows, read as a blind player reads a card: Tab to it, then line by line (NVDA's down arrow).
         // The first rule is heard as its sentence, not as chips run together.
         shown.rule = ((await page.locator(".mindcard .rules li .sr-only").first().textContent()) ?? "").trim();
+        // R52: the card is described by its rules, so the Tab itself says them, in whichever mode NVDA is
+        const atTab = (await nvda.spokenPhraseLog()).length;
         await tabTo(nvda, page, ".mindcard .pad");
+        await page.waitForTimeout(2_000);
+        onTab = bare((await nvda.spokenPhraseLog()).slice(atTab).join(" ")).includes(bare(shown.rule));
         // NVDA reads a page in its browse mode; after a radio button or a text box it may be in focus mode, where the
         // arrow keys go to the page instead (Escape leaves it). The room is never still (its clock, its notices), and
         // NVDA keeps its own copy of the page up to date as it changes: keys pressed straight after the Tab found that
@@ -188,8 +193,8 @@ for (const look of [
             },
           ],
         ];
-        await page.waitForTimeout(2_000);
-        for (const [way, act] of ways) {
+        // the other ways are tried only when the Tab was not enough, and kept with the run
+        for (const [way, act] of onTab ? [] : ways) {
           await act();
           const before = (await nvda.spokenPhraseLog()).length;
           for (let i = 0; i < 4; i++) await nvda.next();
@@ -245,12 +250,17 @@ for (const look of [
       // then the dialog's own words): the plain page below says its dialog the same way, so it is not checked here.
       expect(errors, "console errors").toEqual([]);
       // last, so every check above is judged whatever this one finds
-      writeFileSync(test.info().outputPath(`card-tries-${look.lang}.txt`), `${cardTries} ${cardWay}\n`, "utf8");
+      writeFileSync(
+        test.info().outputPath(`card-tries-${look.lang}.txt`),
+        `${onTab ? "read on the Tab" : `${cardTries} ${cardWay}`}\n`,
+        "utf8",
+      );
       expect(shown.rule, "a rule has its sentence").not.toBe("");
       expect(
         heard,
         `the rule was heard as its sentence (${cardTries} tries, last ${cardWay}): ${shown.rule}`,
       ).toContain(bare(shown.rule));
+      expect(onTab, `R52: the card's first rule was said on the Tab itself, not only by ${cardWay}`).toBe(true);
     });
   });
 }

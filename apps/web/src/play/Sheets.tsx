@@ -141,20 +141,30 @@ export function FoodList({ pet, onPick }: { pet: Pet; onPick: (id: string) => vo
   );
 }
 
-export function MindPanel({ pet }: { pet: Pet }) {
+/** R52: the ids MindPanel gives its lists of rules under `prefix`, one a part, for a region described by them. */
+export const mindListIds = (pet: Pet, prefix: string): string[] => mindParts(pet).map((_, i) => `${prefix}-${i}`);
+
+/** A pet's mind: its rules and memory. `listIds` names its lists of rules (only where one copy is on the page: R52). */
+export function MindPanel({ pet, listIds }: { pet: Pet; listIds?: string }) {
   const t = useT();
   const parts = mindParts(pet);
   return (
     <>
       {parts.map((part, idx) => (
-        <MindPartView key={idx} pet={pet} part={part} firing={parts.length === 1 || pet.last.half === idx} />
+        <MindPartView
+          key={idx}
+          pet={pet}
+          part={part}
+          firing={parts.length === 1 || pet.last.half === idx}
+          {...(listIds ? { listId: `${listIds}-${idx}` } : {})}
+        />
       ))}
       <p className="small">{t("mind.foot")}</p>
     </>
   );
 }
 
-function MindPartView({ pet, part, firing }: { pet: Pet; part: MindPart; firing: boolean }) {
+function MindPartView({ pet, part, firing, listId }: { pet: Pet; part: MindPart; firing: boolean; listId?: string }) {
   const t = useT();
   const { lang } = useLang();
   const p = part.program;
@@ -187,7 +197,7 @@ function MindPartView({ pet, part, firing }: { pet: Pet; part: MindPart; firing:
               : `By night, and its habits: like ${part.from.name}`}
         </p>
       )}
-      <ul className="rules">
+      <ul className="rules" id={listId}>
         {p.rules.map((r, i) => {
           const c = chipsFor(p, r, lang);
           return (

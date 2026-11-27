@@ -17,7 +17,10 @@ import { type Key, useT } from "../../i18n";
 import { deferred } from "../Lazy";
 import { Actions, Meters, type Tab, ThinkStrip } from "../parts";
 import { useScrollEdges } from "../scrollEdges";
-import { MindPanel } from "../Sheets";
+import { MindPanel, mindListIds } from "../Sheets";
+
+/** R52: the room card's lists of rules, by which its region is described */
+const MIND_LISTS = "mindcard-rules";
 import { useWorldMessage } from "./worldMessage";
 
 const AwayCard = deferred(() => import("../Sitting").then((x) => x.AwayCard));
@@ -85,12 +88,20 @@ export function CareColumn({
           <i />
           {lang === "zh" ? `${pet.name}的心智` : `${pet.name.toLowerCase()}.mind`}
         </div>
-        {/* P5: on a desktop this card scrolls on its own; the keyboard reaches it, named by its heading */}
-        <div ref={mindBox} className="pad" tabIndex={0} role="region" aria-labelledby="mindcard-h">
+        {/* P5: on a desktop this card scrolls on its own; the keyboard reaches it, named by its heading. R52: and
+            described by its rules, so a screen reader in focus mode says them on the Tab, not the card's name alone */}
+        <div
+          ref={mindBox}
+          className="pad"
+          tabIndex={0}
+          role="region"
+          aria-labelledby="mindcard-h"
+          aria-describedby={mindListIds(pet, MIND_LISTS).join(" ")}
+        >
           <h2 className="h2" id="mindcard-h">
             {t("mind.title", { name: pet.name })}
           </h2>
-          <MindPanel pet={pet} />
+          <MindPanel pet={pet} listIds={MIND_LISTS} />
         </div>
       </section>
     </div>
