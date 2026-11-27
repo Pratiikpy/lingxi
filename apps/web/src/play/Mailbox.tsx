@@ -5,6 +5,7 @@ import { ITEM } from "@lingxi/world";
 import { useLang } from "../i18n";
 import { allLetters, isUnread, useMail } from "../game/mail";
 import { play } from "../game/sound";
+import { CuteState } from "./CuteState";
 
 export function MailboxPanel() {
   const lang = useLang((s) => s.lang) as "en" | "zh";
@@ -16,11 +17,13 @@ export function MailboxPanel() {
   useEffect(() => {
     if (!loaded) void fetchMail();
   }, [loaded, fetchMail]);
+  // R36: an empty mailbox has the resident cat napping in it, and a mailbox still fetching has it looking up, as every
+  // other empty or waiting list in the game does (a bare line read as something missing)
   if (!letters.length)
-    return (
-      <p className="small">
-        {mail.loaded ? L("No letters yet.", "还没有信。") : L("Fetching the mail…", "正在取信……")}
-      </p>
+    return mail.loaded ? (
+      <CuteState who={{ cat: "nap" }} text={L("No letters yet.", "还没有信。")} />
+    ) : (
+      <CuteState who={{ cat: "look" }} busy text={L("Fetching the mail…", "正在取信……")} />
     );
   return (
     <ul className="mail-list">
