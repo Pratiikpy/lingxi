@@ -2507,6 +2507,22 @@
 /* R36: the studio lays its tool out by its own width (a phone, the desktop's sheet, a phone held sideways) */
 .studio {
   container: studio / inline-size;
+  /* the paper the piece is drawn on: light in both themes, so dark inks show as they will on the pet */
+  --studio-paper: #fffdf8;
+}
+/* R40: on the dark theme the first ink (#2b2140) lay on a ground of almost its own colour (1.07:1) and its tile and
+   swatch read as empty. There every colour chip (the inks, the swatches, the well) shows its colour on a mat of the
+   drawing paper, as the grid shows it; an ink's chip is drawn 6 px larger there, so its colour inside the mat stays
+   18 px. The ink's own colour is never changed: it is the player's drawing */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .studio {
+    --studio-mat: inset 0 0 0 3px var(--studio-paper);
+    --studio-chip: 28px;
+  }
+}
+:root[data-theme="dark"] .studio {
+  --studio-mat: inset 0 0 0 3px var(--studio-paper);
+  --studio-chip: 28px;
 }
 .fashion > .row {
   align-items: center;
@@ -2621,10 +2637,11 @@
   cursor: pointer;
 }
 .studio-ink > span {
-  width: 22px;
-  height: 22px;
+  width: var(--studio-chip, 22px);
+  height: var(--studio-chip, 22px);
   border: 2px solid var(--line);
   border-radius: 4px;
+  box-shadow: var(--studio-mat, none);
   pointer-events: none;
 }
 .studio-ink.erase > span {
@@ -2632,6 +2649,7 @@
   height: auto;
   padding: 0 6px;
   border: 0;
+  box-shadow: none;
   font: 700 0.75rem var(--round);
 }
 /* R36: each swatch answers on 44 px, and so does the well for a colour of the player's own at the row's end. Each is
@@ -2658,6 +2676,7 @@
   padding: 0;
   border: 2px solid var(--line);
   border-radius: 6px;
+  box-shadow: var(--studio-mat, none);
   cursor: pointer;
 }
 .studio-swatch::after {
@@ -2694,10 +2713,12 @@
 .studio-mix > input[type="color"]::-webkit-color-swatch {
   border: 2px solid var(--line);
   border-radius: 50%;
+  box-shadow: var(--studio-mat, none);
 }
 .studio-mix > input[type="color"]::-moz-color-swatch {
   border: 2px solid var(--line);
   border-radius: 50%;
+  box-shadow: var(--studio-mat, none);
 }
 .studio-mix > input[type="color"]:focus-visible {
   outline-offset: -4px;
@@ -2878,7 +2899,7 @@
   background: #d9d1e6;
 }
 .studio-cell {
-  background: #fffdf8;
+  background: var(--studio-paper);
 }
 
 .publish-diary {
