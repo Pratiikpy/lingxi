@@ -24,6 +24,11 @@ module.exports = {
       // 165 MB, where transpiling it through tsx took about 3 s and 390 MB, and minutes on a machine short of memory
       script: path.join(root, "services", "api", "dist", "server.mjs"),
       interpreter: "node",
+      // P10: every store a stranger can fill has a cap, sized so that all of them full stay within a 400 MB heap and a
+      // 500 MB process (scripts/memory-bound.mts measures it). V8's old space is held to 384 MB so that a heap growing
+      // past what was measured ends in an out-of-memory exit pm2 restarts at once, rather than growing until pm2's
+      // max_memory_restart notices it; that stays the ceiling for what the process holds outside the heap
+      node_args: "--max-old-space-size=384",
       env: {
         PORT: "8790",
         // the site's releases (A10): `pnpm site:release` makes each live by replacing apps/web/site/current.json
