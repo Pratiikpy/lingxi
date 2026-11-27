@@ -17,6 +17,11 @@
   color: #2b2140;
   box-shadow: 0 4px 0 #2b2140;
 }
+/* R35: while decorating, the bar has the room: on a phone the thinking strip (or who is here) lay half under it. It
+   steps aside but keeps its place, so the room does not change height under the player's finger */
+.stage:has(> .decor-bar) > :is(.think, .social) {
+  visibility: hidden;
+}
 .decor-head {
   display: flex;
   align-items: center;

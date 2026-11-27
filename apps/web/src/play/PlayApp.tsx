@@ -348,8 +348,7 @@ export function PlayApp() {
           />
           {/* the pet's "!" steps aside while the Decorate bar holds the top of the room (A14) */}
           {!talking && decorating === null && <PetQuestBubble />}
-          {/* R35: while decorating, the Decorate bar has the room: on a phone the strip below lay half under it */}
-          {talking || decorating !== null ? null : Object.keys(others).length > 0 ? (
+          {talking ? null : Object.keys(others).length > 0 ? (
             <SocialBar
               here={[...Object.values(others), ...kinVisitors, ...(shyOne ? [shyOne] : [])].map((o) => ({
                 id: o.id,

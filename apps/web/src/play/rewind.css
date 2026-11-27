@@ -56,8 +56,9 @@
   justify-content: space-between;
   gap: var(--s2);
 }
+/* R35: 44 px tall, the game's touch size (they were 38) */
 .rw-nav .btn {
-  min-height: 38px;
+  min-height: 44px;
   font-size: 13px;
 }
 .rw-clock {

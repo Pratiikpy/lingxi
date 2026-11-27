@@ -183,7 +183,9 @@ export function RewindPanel({ pet }: { pet: Pet }) {
       <p className="small">
         {lang === "zh"
           ? `共 ${frames.length} 个时刻，全部用它当时的电路重放得出。`
-          : `${frames.length} moments, each replayed through the circuit it had at the time.`}
+          : frames.length === 1
+            ? "1 moment, replayed through the circuit it had at the time."
+            : `${frames.length} moments, each replayed through the circuit it had at the time.`}
       </p>
     </div>
   );

@@ -663,6 +663,10 @@
 }
 .sbody {
   overflow: auto;
+  /* R35: 6 px of the gap under the sheet's title belongs to the scrolling box, so the first row's 44 px touch areas
+     (tabs drawn 34 to 40 px) are not cut at the box's top edge; where the content sits is unchanged */
+  margin-top: -6px;
+  padding-top: 6px;
   display: flex;
   flex-direction: column;
   gap: 12px;
@@ -684,10 +688,13 @@
   .grab {
     margin-bottom: 4px;
   }
+  /* the gap under the title is the scrolling box's own top (R35, above): here it is all of it, so the box never runs
+     up under the close button */
   .shead {
-    margin-bottom: 4px;
+    margin-bottom: 0;
   }
   .sbody {
+    margin-top: 0;
     padding-bottom: 20px;
     mask-image: linear-gradient(to bottom, #000 calc(100% - 20px), transparent);
   }
