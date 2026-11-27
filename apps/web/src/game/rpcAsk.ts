@@ -1,6 +1,5 @@
 import type { Chain, PublicClient } from "viem";
 import { lazyPublicClient } from "./chainClient";
-import { now as gameNow } from "./gameClock";
 /**
  * One JSON-RPC request for a verification, tried endpoint by endpoint: the judge's own RPC first, then X Layer's public
  * RPCs (paced), and Lingxi's server only when every one of those failed. The answer says which host gave it.
@@ -42,9 +41,11 @@ const GAP_MS = 45;
 const lastStart = new Map<string, number>();
 const hostOf = (url: string) => new URL(url).host;
 
+// R39: the gaps are measured on the page's own steady clock: a gap is an interval, not a time of day, and the game's clock
+// (which follows the server's time) would bring the game's save runtime into the proof page and the handheld with it
 async function paced(url: string): Promise<void> {
   const host = hostOf(url);
-  const now = gameNow();
+  const now = performance.now();
   const at = Math.max(now, (lastStart.get(host) ?? 0) + GAP_MS);
   lastStart.set(host, at);
   if (at > now) await new Promise((r) => setTimeout(r, at - now));

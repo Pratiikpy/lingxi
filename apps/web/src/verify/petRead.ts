@@ -17,7 +17,7 @@ import {
   readMetadata,
   readPet,
 } from "@lingxi/chain";
-import { deployment } from "../game/chain";
+import { deployment } from "../game/network";
 import { proofClient } from "../game/proofRpc";
 
 /** the page's reads of the pet; the checks each take their own client, to say who answered them */

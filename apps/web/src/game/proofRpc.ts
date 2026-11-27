@@ -10,7 +10,7 @@
 import type { PublicClient } from "viem";
 import { create } from "zustand";
 import { xLayer } from "@lingxi/chain";
-import { API_RPC, NETWORK, OFFICIAL_RPCS, rpcs } from "./chain";
+import { API_RPC, NETWORK, OFFICIAL_RPCS, rpcs } from "./network";
 import { type Endpoints, makeProofClient, proofRequest, rotated } from "./rpcAsk";
 
 export { type Answer, type Endpoints, RpcAnswerError, proofRequest } from "./rpcAsk";

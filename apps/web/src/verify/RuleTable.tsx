@@ -5,7 +5,7 @@
 
 import { useEffect } from "react";
 import { RULES } from "@lingxi/chain";
-import { deployment } from "../game/chain";
+import { deployment } from "../game/network";
 import { useRulesCheck } from "../game/rulesCheck";
 
 export function RuleTable({ lang }: { lang: "en" | "zh" }) {

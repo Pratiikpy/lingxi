@@ -8,7 +8,7 @@
 import { useEffect, useState } from "react";
 import type { Address } from "viem";
 import type { Deployment } from "@lingxi/chain";
-import { deployment } from "../game/chain";
+import { deployment } from "../game/network";
 import { type SourceState, sourcifyPage, sourcifyState } from "../game/sourcify";
 import { API_BASE } from "../game/apiBase";
 

@@ -6,7 +6,7 @@
 
 import { create } from "zustand";
 import { type RuleCheck, checkRules, rulesVerdict } from "@lingxi/chain";
-import { deployment } from "./chain";
+import { deployment } from "./network";
 import { proofClient } from "./proofRpc";
 
 export type RulesState = "idle" | "checking" | "verified" | "broken" | "unknown" | "notTaped";

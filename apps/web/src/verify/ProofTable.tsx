@@ -7,7 +7,7 @@
 import { useEffect, useState } from "react";
 import { keccak256, type Hex } from "viem";
 import { processorAbi } from "@lingxi/chain";
-import { deployment } from "../game/chain";
+import { deployment } from "../game/network";
 import { proofClient } from "../game/proofRpc";
 
 const CIRCUITS: ReadonlyArray<{

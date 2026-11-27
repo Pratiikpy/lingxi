@@ -6,7 +6,7 @@
 import { useEffect, useState } from "react";
 import { type Hex, keccak256 } from "viem";
 import { type Deployment, processorAbi } from "@lingxi/chain";
-import { deployment } from "../game/chain";
+import { deployment } from "../game/network";
 import { proofClient } from "../game/proofRpc";
 import { RECORDED_STARTERS } from "@lingxi/handheld";
 

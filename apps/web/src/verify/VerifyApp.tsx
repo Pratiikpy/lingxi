@@ -26,7 +26,7 @@ import { PetHistory } from "./History";
 import { anchorBrains, loadCircuitFromChain, replayMany, replayStep } from "@lingxi/chain";
 import { unpackState } from "@lingxi/game";
 
-import { deployment } from "../game/chain";
+import { deployment } from "../game/network";
 import { proofClient } from "../game/proofRpc";
 import { EndpointPanel } from "./Endpoints";
 import { fetchPetHistory } from "./indexer";
