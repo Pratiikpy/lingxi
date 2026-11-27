@@ -29,6 +29,31 @@
   </head>
   <body>
     <div id="root"></div>
-    <script type="module" src="/src/numbers/main.tsx"></script>
+    <script type="module">
+      // R43: the first screen (the page's header, title, explanation and its note that it is reading the chain, rendered
+      // by the build into #root) is painted before the page's code runs, so on a slow phone that paint never waits behind
+      // script download or parsing. The code starts once the browser reports the page's largest paint (or, where it
+      // reports no such thing, its first contentful paint, then two frames); a tab opened in the background, which
+      // paints nothing, starts on the timer instead. With nothing prerendered (the dev server serves the page as written)
+      // there is no paint to wait for, so it starts at once
+      let started = false;
+      const start = () => {
+        if (started) return;
+        started = true;
+        import("/src/numbers/main.tsx");
+      };
+      if (!document.querySelector("#root > div[data-prerender]")) start();
+      const kinds = (typeof PerformanceObserver !== "undefined" && PerformanceObserver.supportedEntryTypes) || [];
+      const kind = kinds.includes("largest-contentful-paint") ? "largest-contentful-paint" : kinds.includes("paint") ? "paint" : "";
+      if (kind) {
+        const seen = new PerformanceObserver((list) => {
+          if (!list.getEntries().some((e) => kind !== "paint" || e.name === "first-contentful-paint")) return;
+          seen.disconnect();
+          requestAnimationFrame(() => setTimeout(start, 0));
+        });
+        seen.observe({ type: kind, buffered: true });
+      } else requestAnimationFrame(() => requestAnimationFrame(start));
+      setTimeout(start, 1500);
+    </script>
   </body>
 </html>

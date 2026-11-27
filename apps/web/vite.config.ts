@@ -121,15 +121,15 @@ function offlineWorker(): Plugin {
 }
 
 /**
- * P3: a page's entry starts once its first frame has painted (play.html, index.html, and since R39 verify.html and
- * handheld.html import it from a small inline module), and the game page fetches its app (PlayApp and everything it
- * imports) only after the save is claimed and the clock is asked, as the handheld fetches its own once it holds the
- * handheld. Neither is a script tag Vite would preload, so this writes `modulepreload` hints for each page's entries
- * and their import closures: the browser fetches and parses them from the start without running them, so nothing reads
- * the save before this tab holds the game (P1). The two latin web fonts the first screen is set in are preloaded, so the
- * prerendered screen paints in them (a later swap re-set its words a little larger, which counted as a second, later
- * first screen), and the pages' stylesheets are applied from the start, since the prerendered screens paint with them
- * (the page's own loader skips a stylesheet already on it).
+ * P3: a page's entry starts once its first frame has painted (play.html, index.html, since R39 verify.html and
+ * handheld.html, and since R43 numbers.html import it from a small inline module), and the game page fetches its app
+ * (PlayApp and everything it imports) only after the save is claimed and the clock is asked, as the handheld fetches its
+ * own once it holds the handheld. Neither is a script tag Vite would preload, so this writes `modulepreload` hints for
+ * each page's entries and their import closures: the browser fetches and parses them from the start without running
+ * them, so nothing reads the save before this tab holds the game (P1). The two latin web fonts the first screen is set
+ * in are preloaded, so the prerendered screen paints in them (a later swap re-set its words a little larger, which
+ * counted as a second, later first screen), and the pages' stylesheets are applied from the start, since the
+ * prerendered screens paint with them (the page's own loader skips a stylesheet already on it).
  *
  * `saved` entries are preloaded only for a visitor with a pet saved on this device (a small script in the page checks the
  * save, as the hatch screen's own picker does): a first visit runs the standalone hatch screen and fetches the rest of
@@ -149,9 +149,10 @@ const PRELOADED: ReadonlyArray<{ page: string; entries: readonly string[]; saved
   // code is not a second wait
   { page: "verify.html", entries: ["/src/verify/main.tsx", "/src/verify/VerifyApp.tsx"] },
   { page: "handheld.html", entries: ["/src/handheld/main.tsx", "/src/handheld/HandheldApp.tsx"] },
+  // R43: the live numbers page likewise, its app (NumbersApp and the words of its figures) loaded after its entry
+  { page: "numbers.html", entries: ["/src/numbers/main.tsx", "/src/numbers/NumbersApp.tsx"] },
   // the other pages load their code from the page itself; what they gain here is their two web fonts from the start, so
   // the page is not restyled and laid out again when the fonts arrive after it has drawn (P3)
-  { page: "numbers.html", entries: [] },
   { page: "tree.html", entries: [] },
   { page: "agents.html", entries: [] },
   { page: "privacy.html", entries: [] },
@@ -198,13 +199,21 @@ function preloadPages(): Plugin {
         const later = [...closure(foundSaved)].filter((f) => !files.has(f));
         const html = readFileSync(file, "utf8");
         const already = new Set([...html.matchAll(/href="\.\/([^"]+)"/g)].map((m) => m[1]));
-        const css = [
-          ...new Set(
-            [...files, ...later].flatMap((f) => [
-              ...(chunks.find((c) => c.fileName === f)?.viteMetadata?.importedCss ?? []),
-            ]),
-          ),
-        ];
+        // R43: the stylesheets in the order Vite's own loader applies them, each chunk's after those of the chunks it
+        // imports, entry by entry, so the page cascades as its code would have set it up. Listed chunk by chunk as they
+        // were reached, a chunk's sheet came before its imports' (the numbers page's own sheet before the shared tokens
+        // it builds on), and where two rules of the same weight met, the wrong one came last and won: the numbers page's
+        // footer links took the footer's muted colour instead of the page's own
+        const css: string[] = [];
+        const styled = new Set<string>();
+        const styleOf = (name: string) => {
+          if (styled.has(name)) return;
+          styled.add(name);
+          const chunk = chunks.find((c) => c.fileName === name);
+          for (const dep of chunk?.imports ?? []) styleOf(dep);
+          for (const sheet of chunk?.viteMetadata?.importedCss ?? []) if (!css.includes(sheet)) css.push(sheet);
+        };
+        for (const c of [...found, ...foundSaved]) if (c) styleOf(c.fileName);
         // a visitor with a pet saved fetches the rest of the game from the start too (the check is the hatch screen
         // picker's own; a storage that cannot be read counts as a save, so the full game is never starved)
         const forSaved = later.length
@@ -432,9 +441,11 @@ function prerenderPlay(): Plugin {
  * R39: the pages that painted nothing until every one of their scripts had arrived and run (an empty #root, some forty
  * files) are rendered at build time too, so a slow phone paints the page's own header, words and controls first: the
  * proof page (its explanation, the pet's waiting card and its tables of endpoints, circuits, rules and contracts, each
- * as it reads before X Layer has answered) and the handheld (the device, its keys and what it is doing). Each page's
- * prerender.tsx is rendered once per language (`perLanguage`), and once per variant it names: `variantKeys` are storage
- * keys, and a browser holding any of them gets the `+aboard` render (the handheld says it is bringing a pet aboard).
+ * as it reads before X Layer has answered), the handheld (the device, its keys and what it is doing) and, since R43, the
+ * live numbers page (its header, title and explanation, and that it is reading the chain, with no figure: none has been
+ * read yet). Each page's prerender.tsx is rendered once per language (`perLanguage`), and once per variant it names:
+ * `variantKeys` are storage keys, and a browser holding any of them gets the `+aboard` render (the handheld says it is
+ * bringing a pet aboard).
  *
  * Every render waits in a template, so only the reader's is ever in the page (two would repeat its ids and landmarks),
  * and a small script puts it in #root as the page is read, choosing as the page's first render will: the language as
@@ -453,6 +464,9 @@ const PRERENDERED: ReadonlyArray<{ page: string; entry: string; fill?: string }>
     fill: 'var h=location.hash.slice(1),i=d.querySelector("#pet-id");if(i&&/^\\d{1,10}$/.test(h))i.value=h;',
   },
   { page: "handheld.html", entry: "src/handheld/prerender.tsx" },
+  // R43: the live numbers page as it reads before the server has answered: its header, title and explanation, and the
+  // note that it is reading the chain where the figures will be (no number is in it: each is shown once it is read)
+  { page: "numbers.html", entry: "src/numbers/prerender.tsx" },
 ];
 
 function prerenderPages(): Plugin {
