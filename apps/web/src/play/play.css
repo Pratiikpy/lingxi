@@ -2703,19 +2703,6 @@
   outline-offset: -4px;
   border-radius: 50%;
 }
-/* while erasing there is no ink to colour: the well is empty, with a dashed edge (the browser paints the swatch's
-   colour on the element itself, so only an important rule clears it), not faded */
-.studio-mix > input[type="color"]:disabled {
-  cursor: not-allowed;
-}
-.studio-mix > input[type="color"]:disabled::-webkit-color-swatch {
-  border-style: dashed;
-  background: var(--card) !important;
-}
-.studio-mix > input[type="color"]:disabled::-moz-color-swatch {
-  border-style: dashed;
-  background: var(--card) !important;
-}
 .studio-row,
 .studio-terms {
   display: flex;

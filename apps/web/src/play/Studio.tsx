@@ -38,6 +38,7 @@ import { play } from "../game/sound";
 import { PALETTE_OF } from "../scene/palette";
 import { Sprite } from "./Sprite";
 import { errorText, firstLine } from "../game/errorText";
+import { SWATCHES, inkLabel, wellLabel } from "./studioColours";
 
 type Lang = "en" | "zh";
 const SLOT_NAME: Record<Slot, { en: string; zh: string }> = {
@@ -45,20 +46,6 @@ const SLOT_NAME: Record<Slot, { en: string; zh: string }> = {
   face: { en: "Face", zh: "脸上" },
   held: { en: "Held", zh: "手里" },
 };
-const SWATCHES = [
-  "#2b2140",
-  "#ffffff",
-  "#e8604a",
-  "#ff8fae",
-  "#ffc83d",
-  "#f2cf73",
-  "#7fcb8e",
-  "#4e9e6a",
-  "#7fb7f0",
-  "#3f6fb8",
-  "#b07fe0",
-  "#7a5236",
-];
 const empty = (w: number, h: number) => Array.from({ length: h }, () => new Array(w).fill(0));
 
 export function StudioPanel({ pet }: { pet: Pet }) {
@@ -72,7 +59,16 @@ export function StudioPanel({ pet }: { pet: Pet }) {
   const width = slot === "face" ? DESIGN_FACE_MAX_W : DESIGN_MAX_W;
   const [cells, setCells] = useState(() => empty(DESIGN_MAX_W, DESIGN_MAX_H));
   const [colours, setColours] = useState(["#2b2140", "#e8604a", "#ffc83d"]);
-  const [ink, setInk] = useState(1);
+  // the ink chosen (1 to 3), kept while erasing, so a colour picked then goes back to it (R40)
+  const [pen, setPen] = useState(1);
+  const [erasing, setErasing] = useState(false);
+  const ink = erasing ? 0 : pen;
+  /** R40: a colour picked (a swatch or the well) goes on the chosen ink and draws with it, as in most drawing tools:
+   *  while erasing, picking a colour used to do nothing; now Erase ends and the ink chosen before it takes the colour */
+  const colourPen = (c: string) => {
+    setColours((cs) => cs.map((x, i) => (i === pen - 1 ? c : x)));
+    setErasing(false);
+  };
   const [name, setName] = useState("");
   const [note, setNote] = useState("");
   const [price, setPrice] = useState(BEM_DEFAULT);
@@ -279,14 +275,14 @@ export function StudioPanel({ pet }: { pet: Pet }) {
                 type="radio"
                 name="ink"
                 checked={ink === k}
-                onChange={() => setInk(k)}
-                aria-label={L(`Colour ${k}`, `颜色 ${k}`)}
+                onChange={() => (setPen(k), setErasing(false))}
+                aria-label={inkLabel(k, colours[k - 1] ?? "", lang)}
               />
               <span style={{ background: colours[k - 1] }} />
             </label>
           ))}
           <label className={`studio-ink erase${ink === 0 ? " is-on" : ""}`}>
-            <input type="radio" name="ink" checked={ink === 0} onChange={() => setInk(0)} />
+            <input type="radio" name="ink" checked={ink === 0} onChange={() => setErasing(true)} />
             <span>{L("Erase", "擦除")}</span>
           </label>
           <button
@@ -298,25 +294,26 @@ export function StudioPanel({ pet }: { pet: Pet }) {
           </button>
         </div>
         <div className="studio-swatches">
+          {/* R40: each named by its colour in the player's language (a screen reader read out the hex codes) */}
           {SWATCHES.map((c) => (
             <button
-              key={c}
+              key={c.hex}
               type="button"
               className="studio-swatch"
-              style={{ background: c }}
-              aria-label={c}
-              onClick={() => ink > 0 && setColours((cs) => cs.map((x, i) => (i === ink - 1 ? c : x)))}
+              style={{ background: c.hex }}
+              aria-label={c[lang]}
+              onClick={() => colourPen(c.hex)}
             />
           ))}
-          {/* any colour at all for the chosen ink; while erasing there is no ink to colour */}
+          {/* any colour at all for the chosen ink (the one chosen before Erase, while erasing), named by the nearest
+              colour it is */}
           <span className="studio-mix">
             <input
               type="color"
-              value={colours[ink - 1] ?? colours[0]}
-              disabled={ink === 0}
-              aria-label={L("Your own colour", "自己调颜色")}
+              value={colours[pen - 1] ?? colours[0]}
+              aria-label={wellLabel(colours[pen - 1] ?? "", lang)}
               title={L("Your own colour", "自己调颜色")}
-              onChange={(e) => ink > 0 && setColours((cs) => cs.map((x, i) => (i === ink - 1 ? e.target.value : x)))}
+              onChange={(e) => colourPen(e.target.value)}
             />
           </span>
         </div>
