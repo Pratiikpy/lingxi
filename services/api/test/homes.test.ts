@@ -10,7 +10,7 @@ import type { Address } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
 import { playerIdFor } from "@lingxi/chain";
 import { createDecorStore } from "../src/decor";
-import { type HomeChain, MAX_LINKED, createHomes, homeLinkMessage, visible } from "../src/homes";
+import { CACHE_ENTRIES, type HomeChain, MAX_LINKED, createHomes, homeLinkMessage, visible } from "../src/homes";
 import { LiveRooms, attachLive } from "../src/live";
 
 const alice = privateKeyToAccount("0x59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d");
@@ -641,5 +641,24 @@ describe("home views have a limit per player (A81)", () => {
     expect(state.reads, "a home already read is free").toBe(used);
     await homes.view(owners[21]!, "visitor-b");
     expect(state.reads, "another player still reads").toBeGreaterThan(used);
+  });
+});
+
+describe("the home caches hold 5,000 readings each (P10)", () => {
+  it("lets the reading kept longest go once full, and reads it from the chain again", async () => {
+    expect(CACHE_ENTRIES).toBe(5_000);
+    const { state, chain } = fakeChain();
+    const homes = createHomes({ chain, cacheEntries: 2 });
+    const owners = ["home0001", "home0002", "home0003"];
+    for (const o of owners)
+      await homes.link(o, alice.address, await alice.signMessage({ message: homeLinkMessage(o) }));
+    for (const o of owners) await homes.view(o);
+    const reads = state.reads;
+    // the two most recent are kept; the first was let go when the third came
+    await homes.view("home0003");
+    await homes.view("home0002");
+    expect(state.reads).toBe(reads);
+    await homes.view("home0001");
+    expect(state.reads).toBe(reads + 2);
   });
 });

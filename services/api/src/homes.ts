@@ -21,17 +21,21 @@ export { homeLinkMessage };
 export const MAX_LINKED = 4;
 /** Homes with linked wallets the server keeps, in all. */
 export const MAX_LINKED_HOMES = 50_000;
-/** Entries in each of the two chain-read caches. */
-const CACHE_ENTRIES = 20_000;
+/**
+ * Entries in each of the two chain-read caches, and players whose colour reads are counted (P10): 5,000 each, about
+ * 190 bytes an entry, so 2.8 MB for the three where 20,000 held 11 MB. A reading let go is read from the chain again; the
+ * visitor's limit on uncached views (A81) and the player's on colours (A52) still bound how often.
+ */
+export const CACHE_ENTRIES = 5_000;
 const CACHE_MS = 60_000;
 /** Uncached home views a visitor may cause a minute: each is two reads of X Layer (A81). */
 const VIEWS_PER_MINUTE = 20;
 /** Distinct pets a player may have name colours read for in an hour: each is two reads of X Layer (A52). */
 const COLOUR_PETS_PER_HOUR = 12;
-/** Remembers `value` under `key`, forgetting the oldest entry once the cache is full. */
-const remember = <V>(cache: Map<string, V>, key: string, value: V) => {
+/** Remembers `value` under `key`, forgetting the oldest entry once the cache holds `most`. */
+const remember = <V>(cache: Map<string, V>, key: string, value: V, most: number) => {
   cache.delete(key);
-  if (cache.size >= CACHE_ENTRIES) cache.delete(cache.keys().next().value!);
+  if (cache.size >= most) cache.delete(cache.keys().next().value!);
   cache.set(key, value);
 };
 /** A fresh colour reading (after the player changed it on chain) is taken at most this often per pet. */
@@ -80,8 +84,16 @@ export interface Homes {
 }
 
 export function createHomes(
-  opts: { chain?: HomeChain; file?: string; now?: () => number; freshMs?: number; maxHomes?: number } = {},
+  opts: {
+    chain?: HomeChain;
+    file?: string;
+    now?: () => number;
+    freshMs?: number;
+    maxHomes?: number;
+    cacheEntries?: number;
+  } = {},
 ): Homes {
+  const cacheEntries = opts.cacheEntries ?? CACHE_ENTRIES;
   const now = opts.now ?? Date.now;
   const freshMs = opts.freshMs ?? FRESH_MS;
   const maxHomes = opts.maxHomes ?? MAX_LINKED_HOMES;
@@ -213,7 +225,7 @@ export function createHomes(
         const [packs, held] = await Promise.all([opts.chain.roomPacks(ws), opts.chain.piecesHeld(ws)]);
         const p = Number.isInteger(packs) && packs > 0 ? Math.min(MAX_PACKS, packs) : 0;
         const view = { capacity: MAX_PLACED + ROOM_PER_PACK * p, held: held.filter((id) => !!DECOR_BY_ID[id]?.chain) };
-        remember(views, owner, { at: now(), view });
+        remember(views, owner, { at: now(), view }, cacheEntries);
         return view;
       } catch {
         return cached?.view ?? BARE;
@@ -235,14 +247,14 @@ export function createHomes(
       const window = asked && t - asked.since < 3_600_000 ? asked : { since: t, pets: new Set<string>() };
       if (!window.pets.has(petId) && window.pets.size >= COLOUR_PETS_PER_HOUR) return cached?.colour ?? 0;
       window.pets.add(petId);
-      remember(askedBy, owner, window);
+      remember(askedBy, owner, window, cacheEntries);
       const read = (async () => {
         try {
           const id = BigInt(petId);
           const holder = getAddress(await opts.chain!.ownerOf(id));
           const colour = ws.includes(holder) ? await opts.chain!.nameColour(id) : 0;
           const c = Number.isInteger(colour) && colour > 0 && colour <= 32 ? colour : 0;
-          remember(colours, key, { at: now(), colour: c });
+          remember(colours, key, { at: now(), colour: c }, cacheEntries);
           return c;
         } catch {
           return cached?.colour ?? 0;
