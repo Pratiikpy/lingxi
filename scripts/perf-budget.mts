@@ -7,7 +7,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { pageWeights } from "./page-weights.mts";
 
-/** Pages lighter than this carry no scripts worth a budget (the static circuits page). */
+/** Pages lighter than this carry no scripts worth a budget. */
 const UNWEIGHED_BELOW = 10 * 1024;
 
 const site = process.argv[2] ?? join("apps", "web", "dist");
