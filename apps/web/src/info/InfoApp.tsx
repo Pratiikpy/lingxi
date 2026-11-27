@@ -183,6 +183,12 @@ const TERMS: Section[] = [
   CONTACT,
 ];
 
+/** When each page's words last changed: each page its own (R51 changed the terms on 27 November, not the privacy page). */
+const CHANGED: Record<Kind, [string, string]> = {
+  privacy: ["Last changed 26 November 2026", "最后更新：2026 年 11 月 26 日"],
+  terms: ["Last changed 27 November 2026", "最后更新：2026 年 11 月 27 日"],
+};
+
 export function InfoApp({ kind }: { kind: Kind }) {
   const { lang, toggle } = useLang();
   usePageMeta(kind);
@@ -199,7 +205,7 @@ export function InfoApp({ kind }: { kind: Kind }) {
         </button>
       </header>
       <h1>{kind === "privacy" ? L(["Privacy", "隐私"]) : L(["Terms", "条款"])}</h1>
-      <p className="info-date">{L(["Last changed 26 November 2026", "最后更新：2026 年 11 月 26 日"])}</p>
+      <p className="info-date">{L(CHANGED[kind])}</p>
       {sections.map((s) => (
         <section key={s.h[0]} className="v-card info-card">
           <h2>{L(s.h)}</h2>
