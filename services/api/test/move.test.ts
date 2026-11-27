@@ -1,8 +1,10 @@
+import { readdirSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { Hono } from "hono";
 import { PREFIX_SHARE } from "../src/limit";
 import { MAX_HELD_CHARS, MAX_MOVE_CHARS, MAX_OWNER_CHARS, MOVE_TTL_MS, createMoveStore } from "../src/move";
 import { withMove } from "../src/server";
+import { bytesEach } from "./heap";
 
 const save = { "lingxi.pets.v2": JSON.stringify({ active: 0, pets: [{ name: "Mochi" }] }), "lingxi.lang": "zh" };
 
@@ -108,5 +110,55 @@ describe("moves waiting at once", () => {
         for (let i = 0; i < 16; i++) store.put(save, `2001:db8:${(0x1410 + net).toString(16)}:${i.toString(16)}::/64`);
     const honest = { "lingxi.pets.v2": "y".repeat(20_000) };
     expect(store.put(honest, "203.0.113.141").ok, "a 20 KB move from someone new").toBe(true);
+  });
+});
+
+describe("a waiting move's save kept in a file, not in memory (P10)", () => {
+  const folder = () => mkdtempSync(join(tmpdir(), "moves-p10-"));
+  const files = (dir: string) => readdirSync(dir).filter((n) => !n.endsWith(".tmp"));
+
+  it("hands a save over once from its file, and removes the file when it is taken or expires", () => {
+    let t = 0;
+    const dir = folder();
+    const store = createMoveStore(() => t, dir);
+    const a = store.put(save) as { code: string };
+    const b = store.put({ "lingxi.lang": "en" }) as { code: string };
+    expect(files(dir)).toHaveLength(2);
+    expect(store.take(a.code)).toEqual(save);
+    expect(store.take(a.code)).toBeNull();
+    expect(files(dir)).toHaveLength(1);
+    t = MOVE_TTL_MS + 1;
+    expect(store.take(b.code)).toBeNull();
+    expect(files(dir)).toEqual([]);
+  });
+
+  it("starts with an empty folder: a move never outlives the server, as before", () => {
+    const dir = folder();
+    const code = (createMoveStore(Date.now, dir).put(save) as { code: string }).code;
+    const again = createMoveStore(Date.now, dir);
+    expect(files(dir)).toEqual([]);
+    expect(again.take(code)).toBeNull();
+  });
+
+  it("holds only each move's place in memory: 30 saves of a million characters in under 200 KB", async () => {
+    const dir = folder();
+    const [each, store] = await bytesEach(
+      30,
+      () => createMoveStore(Date.now, dir),
+      (s) => {
+        // each save parsed here from its text, as a request's body is (a repeated string would be a few shared pieces),
+        // and let go once put
+        for (let i = 0; i < 30; i++) {
+          const body = JSON.parse(JSON.stringify({ "lingxi.save": String(i).padEnd(1_000_000, "x") })) as Record<
+            string,
+            string
+          >;
+          expect(s.put(body, `198.51.100.${i}`).ok).toBe(true);
+        }
+      },
+    );
+    expect(each * 30).toBeLessThan(200_000);
+    expect(files(dir)).toHaveLength(30);
+    expect(store.take("x".repeat(22))).toBeNull();
   });
 });

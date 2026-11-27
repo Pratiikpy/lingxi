@@ -13,6 +13,7 @@ import { readEnvFile } from "../envFile";
 import { SERVICE_DIR } from "../paths";
 import { readFileSync } from "node:fs";
 import { join, resolve } from "node:path";
+import { tmpdir } from "node:os";
 import { Hono } from "hono";
 import { createSeasonStore } from "../season";
 import { dayIndex } from "@lingxi/game";
@@ -133,7 +134,8 @@ export function mountOpenApis({
       },
     });
   }
-  withMove(app, createMoveStore());
+  // a waiting move's save in a file of its own, in a temporary folder outside the data folder the backup copies (P10)
+  withMove(app, createMoveStore(Date.now, join(tmpdir(), `lingxi-moves-${process.env.PORT ?? 8787}`)));
   // short duel links: a duel code kept under the start of its own hash (A32)
   withDuels(app, createDuelStore(process.env.LINGXI_DUELS_DIR ?? join(dataDir, "duels")));
   // A34: the daily challenge's block, the first X Layer mainnet block of each UTC day, found once from mainnet's
