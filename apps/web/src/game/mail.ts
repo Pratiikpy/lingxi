@@ -73,7 +73,16 @@ function save(k: Kept) {
 
 interface MailStore extends Kept {
   letters: Letter[];
+  /** a fetch has finished, with the letters or without them */
   loaded: boolean;
+  /**
+   * R40: the last fetch did not get the letters to everyone (no connection, a server that failed, a file that was not
+   * there), so the mailbox may not be empty: it says so and offers to fetch again, rather than "No letters yet."
+   */
+  failed: boolean;
+  /** a fetch is on its way (the first, or Try again) */
+  fetching: boolean;
+  /** fetches the letters to everyone; while one is on its way, a second call shares it */
   fetch: () => Promise<void>;
   open: (id: string) => void;
   claim: (id: string) => void;
@@ -94,20 +103,33 @@ export const useMail = create<MailStore>((set, get) => {
     save(next);
     set(next);
   };
+  // the fetch on its way: the game asks as it starts and the mailbox as it opens, and they share one request
+  let underway: Promise<void> | null = null;
+  const fetchLetters = async () => {
+    // a newcomer's arrival is kept the first time the mailbox loads, so a later visit does not move it
+    if (get().since !== undefined && !hasKept()) keep({});
+    set({ fetching: true });
+    // the on-chain (DeWEB) build has no server: it reads the letters shipped beside the page (H11)
+    const fromServer = BASE !== "";
+    try {
+      const r = await fetch(mailUrl(BASE));
+      const body: unknown = r.ok ? await r.json() : null;
+      if (!isMailAnswer(body, fromServer)) throw new Error(`the mail did not come (${r.status})`);
+      set({ letters: lettersFrom(body, Date.now(), fromServer), loaded: true, failed: false, fetching: false });
+    } catch {
+      // the letters already here stay; what failed is said, and can be asked for again
+      set({ loaded: true, failed: true, fetching: false });
+    }
+  };
   return {
     ...load(),
     letters: [],
     loaded: false,
-    fetch: async () => {
-      // a newcomer's arrival is kept the first time the mailbox loads, so a later visit does not move it
-      if (get().since !== undefined && !hasKept()) keep({});
-      // the on-chain (DeWEB) build has no server: it reads the letters shipped beside the page (H11)
-      try {
-        const r = await fetch(mailUrl(BASE));
-        set({ letters: lettersFrom(await r.json(), Date.now(), BASE !== ""), loaded: true });
-      } catch {
-        set({ loaded: true });
-      }
+    failed: false,
+    fetching: false,
+    fetch: () => {
+      underway ??= fetchLetters().finally(() => (underway = null));
+      return underway;
     },
     open: (id) => {
       if (!get().read.includes(id)) keep({ read: [...get().read, id] });
@@ -127,6 +149,17 @@ export const useMail = create<MailStore>((set, get) => {
 
 /** Where the letters to everyone come from: the server, or in the on-chain copy the file shipped beside the page. */
 export const mailUrl = (base: string): string => (base ? `${base}/api/mail` : "./mail.json");
+
+/**
+ * Whether what came back is the letters to everyone, as against an error the server sent or a page that is not them:
+ * the server's answer says ok and carries a list; the on-chain copy's file is the list itself. An empty list is an
+ * answer (no letters now); anything else is a fetch that failed.
+ */
+export function isMailAnswer(body: unknown, fromServer: boolean): boolean {
+  if (!fromServer) return Array.isArray(body);
+  const j = body as { ok?: unknown; letters?: unknown } | null;
+  return !!j && j.ok === true && Array.isArray(j.letters);
+}
 
 const isText = (t: unknown): t is { en: string; zh: string } =>
   !!t && typeof (t as { en?: unknown }).en === "string" && typeof (t as { zh?: unknown }).zh === "string";

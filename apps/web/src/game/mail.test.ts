@@ -4,8 +4,8 @@
  * but only the welcome letter counts as unread; a player who had the mailbox before keeps their count.
  */
 import { afterEach, describe, expect, it } from "vitest";
-import { type Letter, lettersFrom, mailUrl, unreadCount } from "./mail";
-import { leave, reload, visit } from "./testGame";
+import { type Letter, isMailAnswer, lettersFrom, mailUrl, unreadCount } from "./mail";
+import { json, leave, offline, reload, visit } from "./testGame";
 
 const letter = (id: string, at: number, greets = false): Letter => ({
   id,
@@ -118,5 +118,51 @@ describe("the on-chain copy's mailbox, with no server (H11)", () => {
     expect(lettersFrom({ ok: true, letters: [file[0]] }, now, true).map((l) => l.id)).toEqual(["welcome"]);
     expect(lettersFrom({ ok: false }, now, true)).toEqual([]);
     expect(lettersFrom("<html>", now, false)).toEqual([]);
+  });
+});
+
+describe("a fetch that does not bring the letters (R40)", () => {
+  afterEach(() => leave());
+
+  it("tells the letters from an error or a page that is not them", () => {
+    expect(isMailAnswer({ ok: true, letters: [] }, true), "no letters now is an answer").toBe(true);
+    expect(isMailAnswer({ ok: true, letters: sent }, true)).toBe(true);
+    expect(isMailAnswer({ ok: false }, true)).toBe(false);
+    expect(isMailAnswer({ ok: true }, true)).toBe(false);
+    expect(isMailAnswer(null, true)).toBe(false);
+    expect(isMailAnswer([], false), "the shipped file's empty list is an answer").toBe(true);
+    expect(isMailAnswer({ ok: true, letters: [] }, false), "the file is a list, not the server's answer").toBe(false);
+  });
+
+  it("is kept as failed, and a fetch that then works clears it", async () => {
+    let net = offline;
+    await visit({ at: 5_000, net: (url, init) => net(url, init) });
+    const { useMail } = await import("./mail");
+    await useMail.getState().fetch();
+    expect(useMail.getState()).toMatchObject({ loaded: true, failed: true, fetching: false, letters: [] });
+    net = async (url) => (url.endsWith("mail.json") ? json(sent) : json({ ok: true, letters: sent }));
+    await useMail.getState().fetch();
+    expect(useMail.getState()).toMatchObject({ loaded: true, failed: false, fetching: false });
+    expect(useMail.getState().letters.length).toBeGreaterThan(0);
+  });
+
+  it("a server error is a failure, not an empty mailbox", async () => {
+    await visit({ at: 5_000, net: async () => json({ ok: false }, 503) });
+    const { useMail } = await import("./mail");
+    await useMail.getState().fetch();
+    expect(useMail.getState()).toMatchObject({ loaded: true, failed: true });
+  });
+
+  it("two asks at once (the game starting, the mailbox opening) share one request", async () => {
+    const { net } = await visit({ at: 5_000, net: async () => json({ ok: true, letters: [] }) });
+    const { useMail } = await import("./mail");
+    const first = useMail.getState().fetch();
+    const second = useMail.getState().fetch();
+    expect(useMail.getState().fetching, "on its way").toBe(true);
+    await Promise.all([first, second]);
+    expect(net).toHaveBeenCalledTimes(1);
+    // once it has come, a new ask is a new request
+    await useMail.getState().fetch();
+    expect(net).toHaveBeenCalledTimes(2);
   });
 });

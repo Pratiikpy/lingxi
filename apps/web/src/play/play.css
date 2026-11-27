@@ -1927,6 +1927,19 @@
   padding: 0;
   list-style: none;
 }
+/* R40: the game's own letters are listed, but Lingxi's could not be fetched: one line above them, and the way back */
+.mail-failed {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s2) var(--s3);
+  margin-bottom: var(--s3);
+}
+.mail-failed .small {
+  flex: 1 1 180px;
+  margin: 0;
+}
 .mail-item {
   border: 2px solid var(--line);
   border-radius: var(--r-md);
@@ -3727,4 +3740,12 @@
   display: grid;
   gap: var(--s2);
   justify-items: start;
+}
+/* R40: the cat and its line span the panel, as an empty list's do; the button's lift is kept clear of the sheet's
+   scrolling edge, which cut it flat when the panel was the last thing in the sheet (the mail's failure) */
+.panel-failed > .cute-state {
+  justify-self: stretch;
+}
+.panel-failed > .btn {
+  margin-bottom: 4px;
 }
