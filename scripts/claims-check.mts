@@ -45,6 +45,7 @@ import {
   xLayer,
 } from "../packages/chain/src/index.ts";
 
+import { pageScriptLoads } from "./lib/pageScript.mts";
 import { retryNote, steadyFetch } from "./lib/steadyFetch.mts";
 import { chineseCount, englishCount } from "./lib/spelled.mts";
 import { ROOMS } from "../packages/world/src/index.ts";
@@ -594,10 +595,9 @@ const AUTO: Record<string, Check> = {
           bad.push(`${p || "/"} is not a Lingxi page`);
           continue;
         }
-        const js = await steadyFetch(`${LIVE}/${src}`);
-        const body = js.res.ok ? await js.res.text() : "";
-        if (!js.res.ok || !/javascript/.test(js.res.headers.get("content-type") ?? "") || body.length < 1_000)
-          bad.push(`${p || "/"}'s script ${src} ${js.res.status}`);
+        // a page drawn at build time starts its code from a small loader: the code it imports must load too
+        const code = await pageScriptLoads(`${LIVE}/${src}`);
+        if (!code.ok) bad.push(`${p || "/"}'s script ${src}: ${code.problems.join("; ")}`);
       } catch (e) {
         bad.push(e instanceof Error ? e.message : String(e));
       }
