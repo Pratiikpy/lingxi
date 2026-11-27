@@ -20,6 +20,7 @@ import { PALETTE_OF, type PetStage } from "../scene/palette";
 import { Hatch } from "./Hatch";
 import { useGameServices } from "./app/useGameServices";
 import { useWorldNotices } from "./app/useWorldNotices";
+import { useDialogOpen } from "./app/useDialogOpen";
 import { useLiveRoom } from "./app/useLiveRoom";
 import { useResidentTalk } from "./app/useResidentTalk";
 import { useAppChrome } from "./app/useAppChrome";
@@ -151,6 +152,8 @@ export function PlayApp() {
   // pet's passing words wait while they are open too, as they do for a tab's (in landscape they lay on the sheet)
   const skillsOpen = useSkillsUi((s) => s.open);
   const saveFileOpen = useSaveFileUi((s) => s.open);
+  // R36: and while a dialog lies over the room (a quest's lines, a gift): the pet speaks in the dialog, not over it
+  const dialogOpen = useDialogOpen();
   const worldRoom = useWorld((s) => s.world.room);
   // what raises a message over the world on its own (play/app/useWorldNotices.ts)
   useWorldNotices();
@@ -391,7 +394,7 @@ export function PlayApp() {
         pet={pet}
         face={face}
         trial={!!trial}
-        quiet={talking || tab !== "home" || skillsOpen || saveFileOpen || !!pickedBuilder}
+        quiet={talking || tab !== "home" || skillsOpen || saveFileOpen || !!pickedBuilder || dialogOpen}
         circuit={circuit}
         pick={pick}
       />
@@ -457,8 +460,9 @@ function RoomDialogs({ pet, onDuel }: { pet: Pet; onDuel: () => void }) {
 }
 
 /**
- * The room's notices, stacked in one lane under its top row (A15). `quiet`: the pet is talking or a sheet is open, so
- * its passing words wait; `trial`: a lesson is being tried, and the pet's words about it are the one thing shown (H5).
+ * The room's notices, stacked in one lane under its top row (A15). `quiet`: the pet is talking, or a sheet or a dialog
+ * is open, so its passing words wait; `trial`: a lesson is being tried, and the pet's words about it are the one thing
+ * shown (H5).
  */
 function PetNotices({
   pet,
