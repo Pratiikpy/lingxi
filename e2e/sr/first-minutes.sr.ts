@@ -23,8 +23,6 @@ import { expect, type Page } from "@playwright/test";
 type Nvda = Parameters<Parameters<typeof test>[2]>[0]["nvda"];
 
 const URL = process.env.LINGXI_SR_URL ?? "https://lingxi.knole.me";
-/** How many times the knowledge card is tried when NVDA meets it with silence. */
-const CARD_TRIES = 3;
 
 /** A role NVDA speaks for a control; a phrase that is only roles names nothing. */
 const ROLES =
@@ -110,6 +108,7 @@ for (const look of [
       const shown = { food: "", rule: "" };
       let afterHatch = "";
       let cardTries = 0;
+      let cardWay = "";
 
       try {
         // hatch: an egg, an instinct, a name typed through NVDA, and the hatch button
@@ -174,16 +173,30 @@ for (const look of [
         // copy mid-update in four runs of six and were met with silence. So it is given two seconds to settle, as a
         // player's pause would, and a card met with silence is tabbed away from and back to, up to three tries; how
         // many it took is kept with the run, so a card that needs more than one is seen.
-        for (let attempt = 1; attempt <= CARD_TRIES; attempt++) {
-          await page.waitForTimeout(2_000);
-          await nvda.perform(NVDAKeyCodeCommands.exitFocusMode);
+        // what a player does when the arrows meet silence: Escape (out of focus mode), then NVDA+Space (switch modes
+        // by hand), then Tab away and back; which one worked is kept with the run
+        const ways: Array<[string, () => Promise<void>]> = [
+          ["escape", () => nvda.perform(NVDAKeyCodeCommands.exitFocusMode)],
+          ["NVDA+space", () => nvda.perform(NVDAKeyCodeCommands.toggleBetweenBrowseAndFocusMode)],
+          [
+            "tab away and back",
+            async () => {
+              await nvda.press("Shift+Tab");
+              await tabTo(nvda, page, ".mindcard .pad");
+              await page.waitForTimeout(2_000);
+              await nvda.perform(NVDAKeyCodeCommands.exitFocusMode);
+            },
+          ],
+        ];
+        await page.waitForTimeout(2_000);
+        for (const [way, act] of ways) {
+          await act();
           const before = (await nvda.spokenPhraseLog()).length;
           for (let i = 0; i < 4; i++) await nvda.next();
           const read = (await nvda.spokenPhraseLog()).slice(before).join(" ");
-          cardTries = attempt;
+          cardTries++;
+          cardWay = way;
           if (bare(read).includes(bare(shown.rule))) break;
-          await nvda.press("Shift+Tab");
-          await tabTo(nvda, page, ".mindcard .pad");
         }
         for (const tab of ["me", "mind"]) {
           await tabTo(nvda, page, `.tab[data-hint=tab-${tab}]`);
@@ -232,11 +245,12 @@ for (const look of [
       // then the dialog's own words): the plain page below says its dialog the same way, so it is not checked here.
       expect(errors, "console errors").toEqual([]);
       // last, so every check above is judged whatever this one finds
-      writeFileSync(test.info().outputPath(`card-tries-${look.lang}.txt`), `${cardTries}\n`, "utf8");
+      writeFileSync(test.info().outputPath(`card-tries-${look.lang}.txt`), `${cardTries} ${cardWay}\n`, "utf8");
       expect(shown.rule, "a rule has its sentence").not.toBe("");
-      expect(heard, `the rule was heard as its sentence (${cardTries} tries): ${shown.rule}`).toContain(
-        bare(shown.rule),
-      );
+      expect(
+        heard,
+        `the rule was heard as its sentence (${cardTries} tries, last ${cardWay}): ${shown.rule}`,
+      ).toContain(bare(shown.rule));
     });
   });
 }
