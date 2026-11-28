@@ -24,6 +24,28 @@
 
 灵犀是一只心智是真电路的宠物。每只宠物的大脑都是一块由与非门和记忆锁存器组成的电路；主人把它留在 X Layer 上之后，这块电路就在链上流片，任何人都能逐门读到。每个反应来自它自己的门电路，主人保存的每一天，记忆都存在链上，拿到它的日志或公开的日记，任何人都能重放核对。免费游玩，没有自己的代币。所有用 BEM 支付的费用全部销毁；唯一的另一笔费用是第一个衣服市场对 OKB 交易收取的 3%，归项目所有。
 
+## In three minutes
+
+1. **Play.** Open [lingxi.knole.me/play.html](https://lingxi.knole.me/play.html), pick an egg and hatch it: no wallet, no sign-up. The same game runs from X Layer itself at [1-2-419.tapekit.org](https://1-2-419.tapekit.org/) (open its front page first) and in Telegram at [@LingxiPetBot](https://t.me/LingxiPetBot/Play).
+2. **Teach it.** In the Mind tab, type a rule in English or Chinese, or take a Pet School lesson. The rule becomes gates in the pet's own circuit, and the thinking strip lights it up when it fires.
+3. **Check it.** The [proof page](https://lingxi.knole.me/verify.html#1) replays pet #1's saved days on X Layer from your browser, through public RPCs; `pnpm judge:check` does the same from a terminal.
+4. **See what is real.** The [live-numbers page](https://lingxi.knole.me/numbers.html) reads every figure from the chain and says whose activity it is: so far, the team's own testing.
+5. **What is on X Layer:** TapeOut processor #419 with every kept pet's brain and <!--f:rules-->17<!--/f--> rule circuits, <!--f:contracts-->11<!--/f--> contracts verified on Sourcify, and the site itself on DeWEB.
+
+## Who it is for, and why they stay and pay
+
+**Who.** First, the TapeOut community: Chinese-speaking, on a phone, already holding a wallet. So the game is as complete in Chinese as in English and runs inside Telegram as well as the browser. It is meant to be cosy enough for anyone: a pet is hatched and raised with no wallet at all, and X Layer comes in only when its owner wants it kept for good. Builders are a second audience: the rule circuits and the pet-brain interface are open for other projects to call ([circuit catalogue](https://lingxi.knole.me/circuits.html)).
+
+**How they are reached.** Where that community already is: a Telegram mini app; a link that needs no sign-up; the site on DeWEB; a free outfit for holders of TapeCode-Test1, Rig, BEM and FAB; Builders' Lane, a street of pets honouring the people who build TapeOut; community goals the whole player base reaches together; and gifts, red packets and duels that travel as links.
+
+**Why they come back.** The promise is a pet whose mind you can see and shape: teaching it, then watching the lesson work, is the core of the game. One visit a day is always enough, extra visits bring surprises, and there are no streaks to lose. Story quests, three dailies a day, weekly seasons, families and the tree of life give each week something new, and a 90-day simulator of five kinds of player (once a day, three short visits, a weekend away, a tapper, a spar grinder) holds that pacing as a test.
+
+**Why they pay, and what is never for sale.** The extras are for looks and for others: decorations, limited outfits, more room space and saved looks, a colour for a pet's name, breeding a child, adopting a little one. Nothing that can be bought makes a pet stronger, and a raised pet is never for sale.
+
+**The revenue model.** Two rails, both live on mainnet ([fees in full](#two-fee-rails-bem-burned-okb-to-the-project)). Every fee paid in BEM is burned in the same transaction, so what players spend feeds TapeOut's own economy. Designs priced in OKB pay a 3% fee on each sale to the project, which funds running the game. There is no revenue yet: every figure on the live-numbers page is the team's own testing, and the page says so.
+
+**Built during the event.** Lingxi was started from nothing for X Layer TapeOut Accelerate: its first commit is dated 2026-11-15, and its whole history is public in this repository.
+
 ---
 
 ## How a pet thinks
