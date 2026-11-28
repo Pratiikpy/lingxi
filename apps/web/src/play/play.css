@@ -1309,6 +1309,12 @@
   color: #c2410c;
   font-weight: 700;
 }
+/* R64: habits not yet formed (a leaning, or none) read as a note beside the pet's nature, not as a second nature */
+.rows dd.me-quiet {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--ink-soft);
+}
 
 .diary-lines {
   margin: 0;

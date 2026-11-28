@@ -11,7 +11,6 @@ import {
   FOODS,
   FORMS,
   FORM_NAMES,
-  TRAITS,
   TRAIT_NAMES,
   type Pet,
   beatOf,
@@ -22,6 +21,7 @@ import {
   instinctsOf,
   kinshipNow,
   levelCost,
+  natureOf,
   stageOf,
 } from "@lingxi/game";
 import { useSkillsUi } from "./Skills";
@@ -236,14 +236,13 @@ function MindPartView({ pet, part, firing, listId }: { pet: Pet; part: MindPart;
 export function MeSheetBody({ pet }: { pet: Pet }) {
   const t = useT();
   const { lang } = useLang();
-  const top = [...TRAITS].sort((a, b) => pet.traits[b] - pet.traits[a]).slice(0, 2);
-  const nature =
-    pet.traits[top[0]!] === 0
-      ? t(`line.${pet.line}`)
-      : top
-          .filter((x) => pet.traits[x] > 0)
-          .map((x) => TRAIT_NAMES[x]![lang])
-          .join(lang === "zh" ? "、" : ", ");
+  // R64: its nature is its egg's line; what drifts with what it does is its habits, a leaning until one forms
+  const nature = natureOf(pet);
+  const habits = nature.habits.length
+    ? nature.habits.map((x) => TRAIT_NAMES[x][lang]).join(lang === "zh" ? "、" : ", ")
+    : nature.growing
+      ? t("me.habitGrowing", { trait: TRAIT_NAMES[nature.growing][lang] })
+      : t("me.habitsNone");
   const fav = [...DIETS].sort((a, b) => pet.diet[b] - pet.diet[a])[0]!;
   const favFood = FOODS.find((f) => f.diet === fav);
   const kin = kinshipNow(pet, beatOf(gameNow()));
@@ -275,7 +274,9 @@ export function MeSheetBody({ pet }: { pet: Pet }) {
   return (
     <dl className="rows">
       <dt>{t("me.nature")}</dt>
-      <dd>{nature}</dd>
+      <dd>{t(`line.${nature.line}`)}</dd>
+      <dt>{t("me.habits")}</dt>
+      <dd className={nature.habits.length ? undefined : "me-quiet"}>{habits}</dd>
       <dt>{t("hatch.instincts")}</dt>
       <dd>
         {instinctsOf(pet.instincts)

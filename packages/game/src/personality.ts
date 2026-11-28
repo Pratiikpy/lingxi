@@ -4,11 +4,35 @@
  * their own way. No new randomness: the same pet with the same traits says the same line for the same choice.
  */
 
+import type { StarterLine } from "@lingxi/brain";
 import { HABIT } from "./visitors";
 import { TRAITS, type Trait } from "./pet";
 import type { MomentKey } from "./replay";
 
 type Lines = Readonly<Record<MomentKey, { en: string; zh: string }>>;
+
+/** What the Pet sheet says of a pet's nature (R64). */
+export interface Nature {
+  /** the egg's line: the temperament it hatched with, and its nature for life */
+  line: StarterLine;
+  /** the habits its doings have made of it (a trait at HABIT or more), the strongest two */
+  habits: Trait[];
+  /** before any is a habit, the trait its doings lean to; null when it has none, or habits to show */
+  growing: Trait | null;
+}
+
+/**
+ * A pet's nature as its sheet says it: the egg's line first, then the habits grown from what it does, counted from
+ * HABIT as the voice and the visitors count them. A trait's first points of drift are a leaning, never its nature: a
+ * Bold egg taught to share was read "gentle" the first time it met a friend (R64).
+ */
+export function natureOf(p: { line: StarterLine; traits: Readonly<Record<Trait, number>> }): Nature {
+  const habits = habitsOf(p.traits).slice(0, 2);
+  let growing: Trait | null = null;
+  if (!habits.length)
+    for (const t of TRAITS) if (p.traits[t] > 0 && (growing === null || p.traits[t] > p.traits[growing])) growing = t;
+  return { line: p.line, habits, growing };
+}
 
 /** The strongest habit a pet has (a trait at HABIT or more), the first in TRAITS order on a tie; null when it has none yet. */
 export function strongestHabit(traits: Readonly<Record<Trait, number>> | undefined): Trait | null {
