@@ -224,14 +224,15 @@ button.btn:disabled {
   font-weight: 700;
   font-size: 13.5px;
 }
+/* R68: a list item, so it shows the same open marker as the sandbox's (laid out as flex it had none and read as an
+   empty heading); its 44 px are its own line and padding */
 .build summary {
   cursor: pointer;
   font-family: var(--round);
   font-weight: 800;
   font-size: 14px;
-  min-height: 44px;
-  display: flex;
-  align-items: center;
+  line-height: 20px;
+  padding-block: 12px;
 }
 .builder {
   display: flex;

@@ -107,11 +107,10 @@
   border-radius: var(--r-sm);
   background: var(--card);
 }
+/* R68: kept a list item, so the manifest shows its open marker; 44 px from its line and padding */
 .ag-manifest summary {
-  min-height: 36px;
-  display: flex;
-  align-items: center;
-  gap: 6px;
+  padding-block: 11px;
+  line-height: 22px;
   cursor: pointer;
   font-family: var(--round);
 }
