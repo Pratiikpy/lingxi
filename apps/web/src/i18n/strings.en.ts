@@ -263,7 +263,9 @@ export const en = {
   "chain.updateMind": "Put its new mind on chain",
   "library.title": "Lesson library",
   "library.loading": "Opening the library...",
-  "library.empty": "No shared lessons yet. Teach one in your own words and share it.",
+  "library.emptyTitle": "The shelf is empty for now",
+  "library.empty":
+    "Lessons other players share wait here for your pet to learn. Teach one of your own, built below or said in your words, and tick the box to share it in the library.",
   "library.meta": "learned by {n} · first taught by {by}",
   "library.report": "Hide and report this lesson",
   "library.shareOpt": "Share this lesson in the library (credited to {name})",

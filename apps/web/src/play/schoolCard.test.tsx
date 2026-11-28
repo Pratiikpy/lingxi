@@ -36,6 +36,7 @@ async function school(reduce: boolean) {
     createImageData: (w: number, h: number) => ({ data: new Uint8ClampedArray(w * h * 4), width: w, height: h }),
     putImageData: () => {},
     clearRect: () => {},
+    fillRect: () => {},
     drawImage: () => {},
   } as never);
   vi.spyOn(Element.prototype, "getBoundingClientRect").mockImplementation(function (this: Element) {

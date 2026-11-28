@@ -25,6 +25,9 @@ import { MOOD_NAMES, WANT_NAMES, chipsFor, namesOf } from "../ruleText";
 import "../teach.css";
 import { now } from "../../game/gameClock";
 import { NOT_ON_OFFER, REASON_KEY, useSpec } from "./shared";
+import { DECOR_BY_ID } from "@lingxi/world";
+import { DecorIcon } from "../DecorBar";
+import { bringIntoView } from "../bringIntoView";
 
 /** Pet School as eight levels with three goals each, scored by running the pet's own brain (PRD F8). */
 export function SchoolLevels({
@@ -265,7 +268,7 @@ export function Library({ pet, onPropose }: { pet: Pet; onPropose: (l: LibraryLe
       {lessons === null ? (
         <CuteState who={{ cat: "look" }} text={t("library.loading")} busy />
       ) : shown.length === 0 ? (
-        <CuteState who={{ cat: "nap" }} text={t("library.empty")} />
+        <LibraryEmpty />
       ) : (
         <ul className="lib-list">
           {shown.map((l) => {
@@ -295,6 +298,41 @@ export function Library({ pet, onPropose }: { pet: Pet; onPropose: (l: LibraryLe
           })}
         </ul>
       )}
+    </div>
+  );
+}
+
+const BOOKS = DECOR_BY_ID.books;
+
+/**
+ * R75: the library's empty shelf, as a state of its own: what the shelf is for, how a lesson gets onto it (built here
+ * or said in words, then shared), and a way to start, which opens the rule builder. It was the resident cat asleep in
+ * the same dashed box as the notice under it, telling the player to teach in words, which is often what is resting.
+ */
+function LibraryEmpty() {
+  const t = useT();
+  const open = (e: React.MouseEvent<HTMLButtonElement>) => {
+    play("tap");
+    const build = e.currentTarget.closest(".teach")?.querySelector<HTMLDetailsElement>("details.build");
+    const summary = build?.querySelector("summary");
+    if (!build || !summary) return;
+    build.open = true;
+    bringIntoView(summary);
+  };
+  return (
+    <div className="lib-empty">
+      {BOOKS && (
+        <span className="lib-empty-art" aria-hidden="true">
+          <DecorIcon rows={BOOKS.rows} colors={BOOKS.colors} />
+        </span>
+      )}
+      <div className="lib-empty-text">
+        <b>{t("library.emptyTitle")}</b>
+        <p className="small">{t("library.empty")}</p>
+        <button type="button" className="btn small-btn" onClick={open}>
+          {t("teach.build")}
+        </button>
+      </div>
     </div>
   );
 }

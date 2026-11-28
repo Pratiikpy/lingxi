@@ -257,7 +257,9 @@ export const zh: Record<Key, string> = {
   "chain.updateMind": "把新心智放上链",
   "library.title": "课程库",
   "library.loading": "正在打开课程库……",
-  "library.empty": "还没有人分享课程。用你自己的话教一课，再分享出来吧。",
+  "library.emptyTitle": "书架暂时还空着",
+  "library.empty":
+    "其他玩家分享的课程会放在这里，你的宠物可以学。教一课你自己的（在下面拼出来，或用你的话说），勾上“把这一课分享到课程库”，它就会放上书架。",
   "library.meta": "{n} 只宠物学过 · 最先由{by}教会",
   "library.report": "隐藏并举报这一课",
   "library.shareOpt": "把这一课分享到课程库（署名{name}）",
