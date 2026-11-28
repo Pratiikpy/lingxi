@@ -633,6 +633,56 @@
   color: var(--page);
 }
 
+/* R75: the game's own tick box, the same in each theme. The browser's own, drawn for a dark page, was a dark square
+   with a faint grey edge on the dark card ("Cheer from the side" nearly vanished); this one is the card's colour with
+   the ink's edge and lift, and coral with the ink's tick when on. A line's own rule may size it (20 to 22 px). */
+input[type="checkbox"] {
+  appearance: none;
+  flex: none;
+  display: inline-grid;
+  place-content: center;
+  width: 22px;
+  height: 22px;
+  margin: 0;
+  border: 2px solid var(--line);
+  border-radius: 6px;
+  background: var(--card);
+  box-shadow: 0 2px 0 var(--line);
+  cursor: pointer;
+  transition: background var(--t-micro) var(--ease);
+}
+input[type="checkbox"]::before {
+  content: "";
+  width: 12px;
+  height: 12px;
+  background: #2b2140;
+  clip-path: polygon(12% 46%, 0 64%, 42% 100%, 100% 18%, 84% 4%, 40% 66%);
+  transform: scale(0);
+  transition: transform var(--t-micro) var(--ease);
+}
+input[type="checkbox"]:checked {
+  background: var(--coral);
+}
+input[type="checkbox"]:checked::before {
+  transform: scale(1);
+}
+input[type="checkbox"]:focus-visible {
+  outline: 3px solid var(--sky);
+  outline-offset: 2px;
+}
+input[type="checkbox"]:disabled {
+  border-style: dashed;
+  box-shadow: none;
+  background: var(--track);
+  cursor: not-allowed;
+}
+@media (prefers-reduced-motion: reduce) {
+  input[type="checkbox"],
+  input[type="checkbox"]::before {
+    transition: none;
+  }
+}
+
 /* sheets */
 /* R69: a sheet is modal, so while one is open the page behind it holds still (a wheel or a swipe past the sheet's end,
    or over its head or the dim around it, moved the room up under it), and the room is where it was when it closes */
