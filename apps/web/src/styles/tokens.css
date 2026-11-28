@@ -242,3 +242,16 @@ a {
     scroll-behavior: auto !important;
   }
 }
+
+/* English text is set in Noto Sans SC's Latin, whose curly quotes are drawn full width, as Chinese wants them; on an
+   English page the quote marks come from a Latin face instead, and a Chinese page keeps its own (the final review) */
+@font-face {
+  font-family: "Lingxi Latin Quotes";
+  src: local("Segoe UI"), local("Helvetica Neue"), local("Helvetica"), local("Roboto"), local("Arial");
+  unicode-range: U+2018-201F;
+}
+html:lang(en) {
+  --body:
+    "Lingxi Latin Quotes", "Noto Sans SC", "PingFang SC", "Microsoft YaHei", system-ui, -apple-system, "Segoe UI",
+    sans-serif;
+}
