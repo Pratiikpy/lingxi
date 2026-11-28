@@ -16,13 +16,19 @@
  * are held open by answering the API late, and the Mind sheet's (whose one wait is its lessons' code, R33) by sending
  * that code late; offline is the browser set offline after the game has loaded once.
  * Writes ../audit-<date>/inventory/<screen>.png and raw/<screen>/<look>.png, and lists any page error per look.
+ *
+ * R75: every context it opens routes the server's paid calls (voice, teach, tapeout, sponsor: paidRoutes.mts) to
+ * nothing, so no run ever pays for anything, on the live site or off it; each one blocked is listed in blocked.txt.
+ * `--dist <folder>` serves another build than apps/web/dist, and `--out <folder>` writes somewhere other than the
+ * day's audit folder, so a check of one's own build overwrites neither the shared build nor a review's evidence.
  */
 import { existsSync, mkdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
 import { type ServerResponse, createServer } from "node:http";
-import { extname, join } from "node:path";
+import { extname, join, resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 import { type Browser, type BrowserContext, type Page, chromium } from "@playwright/test";
 import { LINGXI_SITE } from "../packages/chain/src/site.ts";
+import { isPaid } from "./paidRoutes.mts";
 
 const root = join(import.meta.dirname, "..");
 const live = process.argv.includes("--live");
@@ -32,7 +38,14 @@ const looksAt = process.argv.indexOf("--looks");
 const looksOnly = looksAt > 0 ? new Set((process.argv[looksAt + 1] ?? "").split(",")) : null;
 // the folder is named for the local date: in UTC, a run after midnight here wrote into the day before's folder
 const day = new Date().toLocaleDateString("sv-SE");
-const out = join(root, "..", `audit-${day}`, "inventory");
+const flag = (name: string): string | null => {
+  const at = process.argv.indexOf(name);
+  return at > 0 ? (process.argv[at + 1] ?? null) : null;
+};
+const out = resolve(flag("--out") ?? join(root, "..", `audit-${day}`, "inventory"));
+const distDir = resolve(flag("--dist") ?? join(root, "apps", "web", "dist"));
+/** the paid calls the runs asked for, each routed to nothing */
+const blocked: string[] = [];
 
 const SIZES = {
   "360": { width: 360, height: 740 },
@@ -135,7 +148,7 @@ function zoneForHour(hour: number, at = new Date()): string {
 
 /** The built site, with an API that answers nothing (or late, for a loading state). */
 function fileServer(): Promise<{ url: string; slow: { on: boolean }; close: () => void }> {
-  const dist = join(root, "apps", "web", "dist");
+  const dist = distDir;
   const types: Record<string, string> = {
     ".html": "text/html",
     ".js": "text/javascript",
@@ -194,6 +207,14 @@ async function contextFor(browser: Browser, l: Look, noWorker = false, timezoneI
   });
   await ctx.addInitScript(
     `localStorage.setItem('lingxi.reveal.v1','1'); localStorage.setItem('lingxi.lang','${l.lang}');`,
+  );
+  // R75: never a paid call, whichever server the build talks to
+  await ctx.route(
+    (url) => isPaid(url.href),
+    (r) => {
+      blocked.push(`${tag(l)} ${r.request().method()} ${r.request().url()}`);
+      return r.abort("blockedbyclient");
+    },
   );
   return ctx;
 }
@@ -492,6 +513,8 @@ async function main(): Promise<void> {
     files?.close();
   }
   writeFileSync(join(out, "errors.txt"), errors.join("\n") + "\n");
+  writeFileSync(join(out, "blocked.txt"), blocked.join("\n") + "\n");
+  process.stdout.write(`${blocked.length} paid calls blocked (blocked.txt)\n`);
   if (measure) {
     writeFileSync(join(out, "measure.txt"), findings.join("\n") + "\n");
     process.stdout.write(`${findings.length} contrast or touch-size findings (measure.txt)\n`);
