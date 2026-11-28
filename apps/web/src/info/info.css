@@ -1,8 +1,14 @@
-/* P6: the privacy and terms pages, in the proof page's look */
+/* P6: the privacy and terms pages, in the proof page's look. R75: in its frame too (880 px, the same space above and at
+   the sides), so the header sits where every page's does; the reading column inside stays 760 px */
 .info {
-  max-width: 760px;
+  max-width: 880px;
   margin: 0 auto;
-  padding: 16px 16px 24px;
+  padding-block: var(--s5) var(--s6);
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+.info > :not(.v-head) {
+  max-width: 760px;
 }
 .info h1 {
   margin: 18px 0 0;

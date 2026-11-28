@@ -323,7 +323,7 @@ export function HandheldApp() {
       <header className="hh-head">
         <div className="v-head">
           <a className="v-brand" href="play.html">
-            {L("← Lingxi", "← 灵犀")}
+            Lingxi · 灵犀
           </a>
           <button type="button" className="v-lang" onClick={switchLanguage}>
             {lang === "en" ? "中文" : "EN"}

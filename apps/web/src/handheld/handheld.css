@@ -11,11 +11,15 @@ body {
   font-family: var(--body);
 }
 
+/* R75: the frame every page has (880 px, the same space above and at the sides), so the header sits where every page's
+   does; the title's words and the device keep their own measure inside it */
 .hh-page {
   box-sizing: border-box;
-  max-width: 640px;
+  max-width: 880px;
   margin: 0 auto;
-  padding: var(--s5) var(--s4) var(--s6);
+  padding-block: var(--s5) var(--s6);
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
   display: grid;
   gap: var(--s5);
 }
@@ -143,6 +147,11 @@ body {
 }
 
 .hh-panel {
+  /* R75: under the device, as wide as it was in the page's old 640 px column */
+  box-sizing: border-box;
+  width: 100%;
+  max-width: 608px;
+  justify-self: center;
   display: grid;
   gap: var(--s3);
   justify-items: start;
