@@ -65,3 +65,14 @@ describe("the circuit catalogue page asks X Layer one request at a time (C5)", (
     expect(seen.refused, "no request arrived while another was in flight").toBe(0);
   }, 60_000);
 });
+
+describe("the circuit cards' fold-out shows that it opens (R68)", () => {
+  it("'What each bit means' keeps its open marker: the page's stylesheet keeps a summary a list item", () => {
+    const css = readFileSync(join(web, "src", "static", "circuits.css"), "utf8").replace(/\/\*[\s\S]*?\*\//g, "");
+    const summaries = [...css.matchAll(/([^{}]+)\{([^{}]*)\}/g)]
+      .filter((m) => m[1]!.split(",").some((s) => /summary\s*$/.test(s.trim())))
+      .map((m) => ({ selector: m[1]!.trim(), display: /(?:^|;)\s*display\s*:\s*([^;]+)/.exec(m[2]!)?.[1]?.trim() }));
+    expect(summaries.length, "the page styles its summaries").toBeGreaterThan(0);
+    expect(summaries.filter((s) => s.display && s.display !== "list-item")).toEqual([]);
+  });
+});

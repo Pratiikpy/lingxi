@@ -93,10 +93,12 @@
 .cx details {
   margin-top: var(--s2);
 }
+/* R68: kept a list item, so "What each bit means" shows its open marker (laid out as flex it read as an empty heading);
+   44 px tall from its line and padding */
 .cx summary {
-  display: flex;
-  align-items: center;
-  min-height: 44px;
+  display: list-item;
+  padding-block: 11px;
+  line-height: 22px;
   cursor: pointer;
   font-family: var(--round);
   font-weight: 800;
