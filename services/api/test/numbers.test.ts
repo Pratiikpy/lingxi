@@ -2,9 +2,9 @@ import { mkdtempSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { Hono } from "hono";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import type { PublicClient } from "viem";
-import { createSalesCounter, readNumbers, withNumbers } from "../src/numbers";
+import { NUMBERS_WAIT_MS, createNumbersCache, createSalesCounter, readNumbers, withNumbers } from "../src/numbers";
 
 const OKB = "0x00000000000000000000000000000000000000a1" as const;
 const BEM = "0x00000000000000000000000000000000000000b2" as const;
@@ -508,5 +508,125 @@ describe("the numbers are refreshed once at a time, whoever asks (A52)", () => {
     const all = await Promise.all(Array.from({ length: 5 }, () => app.request("/api/numbers")));
     expect(all.map((r) => r.status)).toEqual([200, 200, 200, 200, 200]);
     expect(reads).toBe(1);
+  });
+});
+
+describe("the numbers answer at once, kept fresh behind the page (R74)", () => {
+  /**
+   * The chain's slow read, held open until the test lets it go: a cold visit used to wait for a whole read of the chain
+   * (8.4 s on the live site) because the numbers were read only when someone asked and kept for a minute.
+   */
+  function slowDeps() {
+    const { client } = fakeChain(1_300);
+    let gate: (() => void) | null = null;
+    let reads = 0;
+    let failing = false;
+    const pub = {
+      ...client,
+      getBlockNumber: async () => {
+        reads++;
+        if (failing) throw new Error("node down");
+        if (gate === null) return 1_300n;
+        await new Promise<void>((go) => (gate = go));
+        return 1_300n;
+      },
+    } as unknown as PublicClient;
+    const sales = createSalesCounter({ rpc: "", markets: [{ address: OKB, fromBlock: 1_000 }], client, paceMs: 0 });
+    const deps = { pub, counts, petsIndexedTo: () => 1, sales, contracts: { registry: REG }, explorer: "https://x" };
+    return {
+      deps,
+      reads: () => reads,
+      /** the next read waits until released */
+      hold: () => void (gate = () => undefined),
+      release: () => {
+        const go = gate;
+        gate = null;
+        go?.();
+      },
+      fail: (on: boolean) => void (failing = on),
+    };
+  }
+  const ask = async (app: Hono) => {
+    const r = await app.request("/api/numbers");
+    return {
+      status: r.status,
+      maxAge: r.headers.get("cache-control"),
+      body: (await r.json()) as { ok: boolean; at: number },
+    };
+  };
+
+  it("read at start: the first visit is answered from it without a read of its own", async () => {
+    const s = slowDeps();
+    const numbers = createNumbersCache(s.deps);
+    await numbers.refresh();
+    const app = withNumbers(new Hono(), s.deps, numbers);
+    s.hold();
+    const before = s.reads();
+    const first = await ask(app);
+    expect(first.status).toBe(200);
+    expect(first.body.ok).toBe(true);
+    expect(s.reads(), "no read of the chain waited on").toBe(before);
+  });
+
+  it("a refresh under way does not hold the page: the last numbers answer while it reads", async () => {
+    vi.useFakeTimers({ now: 1_800_000_000_000 });
+    try {
+      const s = slowDeps();
+      const numbers = createNumbersCache(s.deps);
+      await numbers.refresh();
+      const app = withNumbers(new Hono(), s.deps, numbers);
+      vi.setSystemTime(1_800_000_045_000);
+      s.hold();
+      const job = numbers.refresh();
+      const during = await ask(app);
+      expect(during.status).toBe(200);
+      expect(during.body.at, "the numbers read 45 s ago").toBe(1_800_000_000_000);
+      expect(during.maxAge, "kept by a browser only as long as they are under a minute old").toBe("public, max-age=15");
+      s.release();
+      await job;
+      expect((await ask(app)).body.at).toBe(1_800_000_045_000);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("numbers over a minute old wait a moment for a read; if the chain is slower, the old ones answer, their age stated", async () => {
+    vi.useFakeTimers({ now: 1_800_000_000_000 });
+    try {
+      const s = slowDeps();
+      const numbers = createNumbersCache(s.deps);
+      await numbers.refresh();
+      const app = withNumbers(new Hono(), s.deps, numbers);
+      vi.setSystemTime(1_800_000_090_000);
+      s.hold();
+      const answer = ask(app);
+      await vi.advanceTimersByTimeAsync(NUMBERS_WAIT_MS + 10);
+      const late = await answer;
+      expect(late.status).toBe(200);
+      expect(late.body.at, "the page shows when these were read").toBe(1_800_000_000_000);
+      expect(late.maxAge).toBe("public, max-age=0");
+      s.release();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("a failed read keeps the last numbers and fails the job, so the health page shows it", async () => {
+    const s = slowDeps();
+    const numbers = createNumbersCache(s.deps);
+    await numbers.refresh();
+    const kept = numbers.latest()?.at;
+    s.fail(true);
+    await expect(numbers.refresh()).rejects.toThrow(/node down/);
+    expect(numbers.latest()?.at).toBe(kept);
+  });
+
+  it("before any read has worked, a visit waits for one, and says so when the chain cannot be read", async () => {
+    const s = slowDeps();
+    s.fail(true);
+    const app = withNumbers(new Hono(), s.deps);
+    expect((await ask(app)).status).toBe(503);
+    s.fail(false);
+    expect((await ask(app)).status).toBe(200);
   });
 });

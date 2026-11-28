@@ -25,7 +25,14 @@ import { withVouchers } from "../voucher";
 import { createConsentIndex, withConsents } from "../consents";
 import { createSourcifyRelay, withSourcify } from "../sourcify";
 import { privateKeyToAccount } from "viem/accounts";
-import { type EarningTerms, createSalesCounter, withNumbers } from "../numbers";
+import {
+  type EarningTerms,
+  NUMBERS_REFRESH_MS,
+  type NumbersDeps,
+  createNumbersCache,
+  createSalesCounter,
+  withNumbers,
+} from "../numbers";
 import { createCircuitCounter } from "../circuits";
 import { seedStore, snapshotFits } from "../snapshot";
 import { readTeamFile } from "../team";
@@ -253,7 +260,7 @@ export function startRegistryJobs({
     if (circuitCounter) jobs.loop("circuits", () => circuitCounter.catchUp(), 20_000);
     // the relayer's hatches are sponsored keeps; every other pet was kept by its owner's wallet or another (H10)
     const sponsors = relayer ? [relayer.address] : [];
-    withNumbers(app, {
+    const numbersDeps: NumbersDeps = {
       pub: visitorPub,
       counts: (since) => indexer.counts(since),
       petsIndexedTo: () => indexer.head(),
@@ -282,7 +289,11 @@ export function startRegistryJobs({
         extras: env("LINGXI_EXTRAS") ?? chainCtx?.deployment.extras,
       },
       explorer: "https://www.oklink.com/xlayer",
-    });
+    };
+    // R74: the numbers are read at start and every 40 s after, so a visit is answered from the last read at once
+    const numbers = createNumbersCache(numbersDeps);
+    jobs.loop("numbers", () => numbers.refresh(), NUMBERS_REFRESH_MS);
+    withNumbers(app, numbersDeps, numbers);
     // community goals: every contribution read from the registry and every BEM burner
     const burners = [
       env("LINGXI_BREEDER"),

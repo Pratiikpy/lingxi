@@ -491,25 +491,67 @@ export async function readNumbers(d: NumbersDeps, nowMs = Date.now()): Promise<N
   };
 }
 
-/** GET /api/numbers: the live numbers, cached for a minute; readable from any origin (the DeWEB copy reads it too). */
-export function withNumbers(app: Hono, d: NumbersDeps): Hono {
-  let cache: { at: number; body: Numbers } | null = null;
+/** The page promises numbers at most a minute old. */
+export const NUMBERS_MAX_AGE_MS = 60_000;
+/**
+ * How long after each read the next one starts (the server's job): a read takes up to about ten seconds on X Layer's
+ * RPCs, so the numbers kept are never a minute old while the chain answers.
+ */
+export const NUMBERS_REFRESH_MS = 40_000;
+/** How long a visit waits for a read when the numbers kept are over a minute old (the job is late, or the chain slow). */
+export const NUMBERS_WAIT_MS = 1_500;
+
+export interface NumbersCache {
+  /** Reads the numbers again (one read at a time, whoever asks); rejects when the chain cannot be read. */
+  refresh(): Promise<void>;
+  /** The last numbers read, or null before any read has worked. */
+  latest(): Numbers | null;
+}
+
+/**
+ * R74: the numbers, read by the server's own job and kept, so a visit is answered from the last read at once. They were
+ * read only when someone asked and kept a minute: a visit after a quiet minute waited for a whole read of the chain
+ * (8.4 s for the page's first figures on a cold visit to the live site).
+ */
+export function createNumbersCache(d: NumbersDeps): NumbersCache {
+  let kept: Numbers | null = null;
   // one refresh at a time, whoever asks: requests arriving during it share it (A52)
   let refreshing: Promise<void> | null = null;
+  return {
+    refresh: () =>
+      (refreshing ??= readNumbers(d)
+        .then((body) => {
+          // a slower read that started earlier never replaces a newer one
+          if (!kept || body.at >= kept.at) kept = body;
+        })
+        .finally(() => (refreshing = null))),
+    latest: () => kept,
+  };
+}
+
+/**
+ * GET /api/numbers: the last numbers read, at once, kept by a browser or a cache only while they are under a minute old;
+ * readable from any origin (the DeWEB copy reads it too). Numbers over a minute old (the job is late, or the chain was
+ * not answering) wait a moment for a read, then answer as they are: the page shows when they were read.
+ */
+export function withNumbers(app: Hono, d: NumbersDeps, numbers: NumbersCache = createNumbersCache(d)): Hono {
   app.get("/api/numbers", async (c) => {
     c.header("access-control-allow-origin", "*");
-    c.header("cache-control", "public, max-age=60");
-    if (!cache || Date.now() - cache.at > 60_000) {
-      refreshing ??= readNumbers(d)
-        .then(
-          (body) => void (cache = { at: Date.now(), body }),
-          () => undefined,
-        )
-        .finally(() => (refreshing = null));
-      await refreshing;
-      if (!cache) return c.json({ ok: false, reason: "chain" }, 503);
+    const stale = (n: Numbers | null) => !n || Date.now() - n.at > NUMBERS_MAX_AGE_MS;
+    if (stale(numbers.latest())) {
+      // a failed read leaves the last numbers in place; the job logs it, and the page says when they were read
+      const read = numbers.refresh().catch(() => undefined);
+      if (numbers.latest()) {
+        let timer: ReturnType<typeof setTimeout> | undefined;
+        await Promise.race([read, new Promise((done) => (timer = setTimeout(done, NUMBERS_WAIT_MS)))]);
+        clearTimeout(timer);
+      } else await read;
     }
-    return c.json(cache.body);
+    const body = numbers.latest();
+    if (!body) return c.json({ ok: false, reason: "chain" }, 503);
+    const left = Math.max(0, Math.floor((NUMBERS_MAX_AGE_MS - (Date.now() - body.at)) / 1000));
+    c.header("cache-control", `public, max-age=${left}`);
+    return c.json(body);
   });
   return app;
 }
