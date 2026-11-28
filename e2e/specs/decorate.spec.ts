@@ -1,8 +1,13 @@
 /**
- * A14: nothing covers the Decorate bar. The pet's "!" stands at the room's top right; while the player decorates, the
- * bar takes the top of the room, so the "!" steps aside, and comes back when they press Done. P3a: and the bar never
- * covers the room: with a piece in hand it folds to one strip, the room below takes the tap, and the shelves come back.
+ * A14: nothing covers the Decorate bar, and the pet's "!" steps aside while the player decorates, coming back when they
+ * press Done. P3a: with a piece in hand the bar folds to one strip, the room takes the tap, and the shelves come back.
+ * R70: and the bar never covers the room at all: it stands in the care column's place, under the room on a phone and
+ * beside it on a desktop, so the whole room where a piece goes is in view, before a piece is picked and after.
  */
+type Box = { x: number; y: number; width: number; height: number };
+const overlap = (a: Box, b: Box) =>
+  Math.max(0, Math.min(a.x + a.width, b.x + b.width) - Math.max(a.x, b.x)) *
+  Math.max(0, Math.min(a.y + a.height, b.y + b.height) - Math.max(a.y, b.y));
 import { expect, hatch, test } from "../fixtures";
 
 for (const look of [
@@ -21,8 +26,9 @@ for (const look of [
     await expect(mark, "the pet's mark steps aside while decorating").toHaveCount(0);
     await page.waitForTimeout(400);
     await page.screenshot({ path: test.info().outputPath(`decorate-${look.lang}-${look.scheme}-${look.size}.png`) });
-    // P3a: with a piece in hand the bar folds to one strip, and most of the room is free to tap
     const stage = (await page.locator(".stage").boundingBox())!;
+    expect(overlap((await bar.boundingBox())!, stage), "the bar covers none of the room").toBe(0);
+    // P3a: with a piece in hand the bar folds to one strip
     const affordable = bar
       .locator(".decor-piece.shop")
       .filter({ hasText: look.lang === "zh" ? "15 金币" : "15 coins" })
@@ -30,11 +36,7 @@ for (const look of [
     await affordable.click();
     await expect(bar).toHaveClass(/placing/);
     const strip = (await bar.boundingBox())!;
-    // a row of 44-pixel buttons and a line of words: at most a third of the room even when the evening's village news
-    // leaves a phone's room at its shortest
-    expect(strip.y + strip.height - stage.y, "the strip takes at most the top third of the room").toBeLessThan(
-      stage.height / 3,
-    );
+    expect(overlap(strip, stage), "the strip covers none of the room either").toBe(0);
     // and nothing in it is cut off: every line's words fit inside it
     const clipped = await bar
       .locator(".decor-line > *")

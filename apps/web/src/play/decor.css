@@ -1,25 +1,41 @@
+/* R70: the bar is a card of the page in the care column's place (play/app/RoomPanels.tsx): under the room on a phone,
+   beside it on a wide screen or a phone held sideways. Drawn over the room's top it covered 63 to 76 per cent of the
+   room on a phone and most of it sideways, so the player could not see where a piece would go */
 .decor-bar {
-  position: absolute;
-  left: 10px;
-  right: 10px;
-  top: 10px;
-  z-index: 4;
   display: grid;
   /* one column the bar's own width: a child wider than the bar (a long piece name, the count) wraps or ellipsises inside
      it, never pushes past its edge (P3a) */
   grid-template-columns: minmax(0, 1fr);
   gap: 6px;
   padding: 10px;
-  border: 2px solid #2b2140;
+  border: 2px solid var(--line);
   border-radius: 16px;
-  /* R35: solid: at 96% the room's own top row (Home, Known, Look around) showed through it as ghost words */
-  background: #fffdf8;
-  color: #2b2140;
-  box-shadow: 0 4px 0 #2b2140;
+  background: var(--card);
+  color: var(--ink);
+  box-shadow: var(--lift);
 }
-/* R35: while decorating, the bar has the room: on a phone the thinking strip (or who is here) lay half under it. It
-   steps aside but keeps its place, so the room does not change height under the player's finger */
-.stage:has(> .decor-bar) > :is(.think, .social) {
+.side-care {
+  display: contents;
+}
+/* while decorating, the care column keeps its place unseen (and out of reach: hidden things take no focus), so the
+   room keeps its size when the bar opens and when it folds to a strip; the bar lies over that place, and scrolls
+   within it in the rare case it is taller */
+.side-care[data-aside] {
+  visibility: hidden;
+}
+.side-decor {
+  position: relative;
+}
+.side-decor > .decor-bar {
+  position: absolute;
+  inset: 0 0 auto;
+  z-index: 1;
+  max-height: 100%;
+  overflow-y: auto;
+}
+/* R35: while decorating the room is the player's to place in: the thinking strip (or who is here) steps aside but keeps
+   its place, so the room does not change height under the player's finger */
+.stage[data-decorating] > :is(.think, .social) {
   visibility: hidden;
 }
 .decor-head {
@@ -48,13 +64,13 @@
 .decor-head span {
   flex: 1;
   font-size: 13px;
-  color: #5b4e73;
+  color: var(--ink-soft);
   font-variant-numeric: tabular-nums;
 }
 .decor-hint {
   margin: 0;
   font-size: 12px;
-  color: #5b4e73;
+  color: var(--ink-soft);
 }
 .decor-list {
   list-style: none;
@@ -72,10 +88,10 @@
   justify-items: center;
   gap: 2px;
   padding: 6px 4px;
-  border: 2px solid #2b2140;
+  border: 2px solid var(--line);
   border-radius: 12px;
-  background: #fffdf8;
-  color: #2b2140;
+  background: var(--card);
+  color: var(--ink);
   font: inherit;
   cursor: pointer;
   transition: transform 0.12s ease;
@@ -89,8 +105,8 @@
   box-shadow: 0 0 0 3px #ff7a59;
 }
 .decor-piece.shop {
-  color: #2b2140;
-  background: #f4eefb;
+  color: var(--ink);
+  background: var(--tint);
 }
 .decor-piece span {
   font-size: 11px;
@@ -101,8 +117,8 @@
   min-height: 14px;
   font-size: 10.5px;
   font-weight: 800;
-  /* the decorate bar is light in both themes, so the light coral for text (P5: 5.4:1; #c9542f was 4.3) */
-  color: #b34624;
+  /* the coral for text in each theme (P5: 5.4:1 on the light card; #c9542f was 4.3) */
+  color: var(--coral-ink);
 }
 .decor-icon {
   width: 36px;
@@ -122,22 +138,21 @@
   line-height: 1.2;
   text-align: center;
 }
-/* R35: a commission not open yet is drawn as one, not faded: the bar is light in both themes, so its light track and
-   soft ink, and a dashed edge */
+/* R35: a commission not open yet is drawn as one, not faded: the track and the soft ink, and a dashed edge */
 .decor-piece.locked {
-  background: #f1e4d2;
-  color: #5b4e73;
+  background: var(--track);
+  color: var(--ink-soft);
   border-style: dashed;
 }
 .decor-piece.locked small {
-  color: #6f6386;
+  color: var(--ink-soft);
 }
 
 /* the count of pieces placed, beside the coins; it stays while a piece is in hand */
 .decor-count {
   font-size: 12px;
   font-weight: 700;
-  color: #5b4e73;
+  color: var(--ink-soft);
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
 }
@@ -151,18 +166,18 @@
 }
 .decor-shelf {
   padding: 4px 10px;
-  border: 2px solid #2b2140;
+  border: 2px solid var(--line);
   border-radius: 999px;
-  background: #fffdf8;
-  color: #2b2140;
+  background: var(--card);
+  color: var(--ink);
   font: inherit;
   font-size: 12px;
   font-weight: 700;
   cursor: pointer;
 }
 .decor-shelf.on {
-  background: #2b2140;
-  color: #fffdf8;
+  background: var(--ink);
+  color: var(--card);
 }
 .decor-shelf:focus-visible,
 .decor-piece:focus-visible {
@@ -197,11 +212,4 @@
   align-items: baseline;
   justify-content: space-between;
   column-gap: 8px;
-}
-/* the bar is a light card in either theme, so its plain buttons take its colours, not the page's */
-.decor-bar .btn:not(.primary) {
-  background: #fffdf8;
-  color: #2b2140;
-  border-color: #2b2140;
-  box-shadow: 0 3px 0 #2b2140;
 }

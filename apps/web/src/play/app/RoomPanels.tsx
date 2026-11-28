@@ -34,6 +34,7 @@ export function CareColumn({
   thinking,
   taught,
   pick,
+  decor,
 }: {
   pet: Pet;
   lang: Lang;
@@ -43,6 +44,11 @@ export function CareColumn({
   /** the lesson being tried fired */
   taught: boolean;
   pick: (t: Tab, force?: boolean) => void;
+  /**
+   * R70: the Decorate bar, while decorating: it takes the care column's place (under the room on a phone, beside it
+   * on a wide screen or a phone held sideways), so it never covers the room where its pieces go
+   */
+  decor?: React.ReactNode;
 }) {
   const t = useT();
   const act = useGame((s) => s.act);
@@ -61,49 +67,54 @@ export function CareColumn({
     act(pet.asleep ? { kind: "wake" } : { kind: "lightsOff" });
   };
   return (
-    <div className="side">
-      {/* a landscape phone shows the thinking strip here, beside the room, where it cannot hide the pet (H5) */}
-      {!talking && (
-        <div className="think-side">
-          <ThinkStrip pet={thinking} taught={taught} />
-        </div>
-      )}
-      <Meters pet={pet} />
-      {/* feeding is care: Feed opens the bag on day 1 too, though the Bag tab waits for day 2 (H5b) */}
-      <Actions
-        pet={pet}
-        absent={travelling}
-        onFeed={() => pick("bag", true)}
-        onPlay={playBall}
-        onClean={clean}
-        onSleep={sleep}
-        onMedicine={() => (play("sparkle"), act({ kind: "medicine" }))}
-        onToday={() => (useQuestUi.getState().setBookTab("today"), pick("quests"))}
-        onCollection={() => pick("collection")}
-      />
-      <section className="card mindcard">
-        <div className="cardbar" aria-hidden="true">
-          <i />
-          <i />
-          <i />
-          {lang === "zh" ? `${pet.name}的心智` : `${pet.name.toLowerCase()}.mind`}
-        </div>
-        {/* P5: on a desktop this card scrolls on its own; the keyboard reaches it, named by its heading. R52: and
+    <div className={`side${decor ? " side-decor" : ""}`}>
+      {decor}
+      {/* R70: put aside while decorating, not taken down: it keeps its room, so the room beside it keeps its size
+          under the player's finger, and the mind card keeps its place and its scroll's edges */}
+      <div className="side-care" data-aside={decor ? "" : undefined}>
+        {/* a landscape phone shows the thinking strip here, beside the room, where it cannot hide the pet (H5) */}
+        {!talking && (
+          <div className="think-side">
+            <ThinkStrip pet={thinking} taught={taught} />
+          </div>
+        )}
+        <Meters pet={pet} />
+        {/* feeding is care: Feed opens the bag on day 1 too, though the Bag tab waits for day 2 (H5b) */}
+        <Actions
+          pet={pet}
+          absent={travelling}
+          onFeed={() => pick("bag", true)}
+          onPlay={playBall}
+          onClean={clean}
+          onSleep={sleep}
+          onMedicine={() => (play("sparkle"), act({ kind: "medicine" }))}
+          onToday={() => (useQuestUi.getState().setBookTab("today"), pick("quests"))}
+          onCollection={() => pick("collection")}
+        />
+        <section className="card mindcard">
+          <div className="cardbar" aria-hidden="true">
+            <i />
+            <i />
+            <i />
+            {lang === "zh" ? `${pet.name}的心智` : `${pet.name.toLowerCase()}.mind`}
+          </div>
+          {/* P5: on a desktop this card scrolls on its own; the keyboard reaches it, named by its heading. R52: and
             described by its rules, so a screen reader in focus mode says them on the Tab, not the card's name alone */}
-        <div
-          ref={mindBox}
-          className="pad"
-          tabIndex={0}
-          role="region"
-          aria-labelledby="mindcard-h"
-          aria-describedby={mindListIds(pet, MIND_LISTS).join(" ")}
-        >
-          <h2 className="h2" id="mindcard-h">
-            {t("mind.title", { name: pet.name })}
-          </h2>
-          <MindPanel pet={pet} listIds={MIND_LISTS} />
-        </div>
-      </section>
+          <div
+            ref={mindBox}
+            className="pad"
+            tabIndex={0}
+            role="region"
+            aria-labelledby="mindcard-h"
+            aria-describedby={mindListIds(pet, MIND_LISTS).join(" ")}
+          >
+            <h2 className="h2" id="mindcard-h">
+              {t("mind.title", { name: pet.name })}
+            </h2>
+            <MindPanel pet={pet} listIds={MIND_LISTS} />
+          </div>
+        </section>
+      </div>
     </div>
   );
 }

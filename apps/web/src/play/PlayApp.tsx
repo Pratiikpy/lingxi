@@ -270,7 +270,12 @@ export function PlayApp() {
       />
       {/* P5: the room's main landmark (the top bar is its header, the tab bar its navigation) */}
       <main className="main">
-        <section className="stage" aria-label={pet.name} data-hint="pet">
+        <section
+          className="stage"
+          aria-label={pet.name}
+          data-hint="pet"
+          data-decorating={decorating !== null && worldRoom === HOME ? "" : undefined}
+        >
           <RoomView
             pet={pet}
             stage={stage}
@@ -308,13 +313,6 @@ export function PlayApp() {
             setDecorating={setDecorating}
             pick={pick}
           />
-          {decorating !== null && worldRoom === HOME && (
-            <DecorBar
-              selected={decorating || null}
-              onSelect={(id) => setDecorating(id ?? "")}
-              onDone={() => setDecorating(null)}
-            />
-          )}
           {circuit && <CircuitOverlay pet={pet} reduceMotion={reduce} />}
           <button
             type="button"
@@ -370,6 +368,15 @@ export function PlayApp() {
           thinking={trial ? trialPet(pet, trial) : pet}
           taught={!!trial?.fired}
           pick={pick}
+          decor={
+            decorating !== null && worldRoom === HOME ? (
+              <DecorBar
+                selected={decorating || null}
+                onSelect={(id) => setDecorating(id ?? "")}
+                onDone={() => setDecorating(null)}
+              />
+            ) : undefined
+          }
         />
       </main>
       <TabBar current={tab} onPick={pick} locked={lockedTabs} />
