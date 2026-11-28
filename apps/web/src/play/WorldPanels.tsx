@@ -3,17 +3,16 @@
 import { BUILDER_PET, type BuilderId, builderIn } from "@lingxi/game";
 import { rowAct } from "./rowAct";
 import { CuteState } from "./CuteState";
+import { MakePatterns } from "./MakePatterns";
 import { play } from "../game/sound";
 import { FRESH_START_TEA, useSkillsUi } from "./Skills";
-import { Fragment, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { stageOf } from "@lingxi/game";
 import {
   BOX_TABLES,
   CORNER_SHOP,
-  DECOR_BY_ID,
   HOME,
   ITEM,
-  MAKE_RECIPES,
   PIECE_PRICES,
   QUESTS,
   RECIPES,
@@ -226,7 +225,7 @@ function BagRow({
 export function BagPanel({ onFed }: { onFed: () => void }) {
   const t = useT();
   const { lang } = useLang();
-  const { world, use, craft, buy, openBox, make, buyPiece } = useWorld();
+  const { world, use, craft, buy, openBox, buyPiece } = useWorld();
   const owned = ownedPieces(world);
   const room = ROOMS[world.room]!;
   const entries = Object.entries(world.bag)
@@ -404,76 +403,7 @@ export function BagPanel({ onFed }: { onFed: () => void }) {
           </ul>
         </section>
       )}
-      <section>
-        <p className="label">{lang === "zh" ? "缝衣服 · 做家具" : "Sew and build"}</p>
-        <ul className="bag-list">
-          {MAKE_RECIPES.map((r) => {
-            const done = r.kind === "outfit" ? owned.includes(r.id) : (world.decor?.owned ?? []).includes(r.id);
-            const can = r.ins.every((x) => has(world, x.item, x.amount));
-            const name = r.kind === "outfit" ? WEARABLE[r.id]!.name[lang] : DECOR_BY_ID[r.id]!.name[lang];
-            return (
-              <li key={`${r.kind}:${r.id}`} className={`bag-item no-art${can || done ? "" : " is-dim"}`}>
-                <div className="bag-text">
-                  <b>
-                    {name}{" "}
-                    <em>
-                      {r.kind === "outfit" ? (lang === "zh" ? "衣服" : "outfit") : lang === "zh" ? "家具" : "furniture"}
-                    </em>
-                  </b>
-                  {/* R30: what is still short is marked, so the line says why the button waits, not only its colour */}
-                  <span>
-                    {r.ins.map((x, k) => {
-                      const held = world.bag[x.item] ?? 0;
-                      const item = ITEM[x.item];
-                      return (
-                        <Fragment key={x.item}>
-                          {k > 0 && " + "}
-                          <span className={held < x.amount ? "short" : undefined}>
-                            {`${item ? item.name[lang] : x.item} ×${x.amount} (${held})`}
-                          </span>
-                        </Fragment>
-                      );
-                    })}
-                  </span>
-                </div>
-                <button
-                  type="button"
-                  className="btn primary"
-                  disabled={done || !can}
-                  onClick={() => make(r.kind, r.id)}
-                  aria-label={rowAct(
-                    done
-                      ? lang === "zh"
-                        ? "已有"
-                        : "Have it"
-                      : r.kind === "outfit"
-                        ? lang === "zh"
-                          ? "缝"
-                          : "Sew"
-                        : lang === "zh"
-                          ? "做"
-                          : "Build",
-                    name,
-                    lang,
-                  )}
-                >
-                  {done
-                    ? lang === "zh"
-                      ? "已有"
-                      : "Have it"
-                    : r.kind === "outfit"
-                      ? lang === "zh"
-                        ? "缝"
-                        : "Sew"
-                      : lang === "zh"
-                        ? "做"
-                        : "Build"}
-                </button>
-              </li>
-            );
-          })}
-        </ul>
-      </section>
+      <MakePatterns />
       <section>
         <p className="label">{t("bag.workbench")}</p>
         {makeable.length ? (

@@ -694,3 +694,51 @@
     grid-column: 2;
   }
 }
+
+/* R75: the bag's patterns: what can be made, then the rest in a fold, calm, with what the bag holds towards each */
+.make-patterns {
+  display: grid;
+  gap: var(--s2);
+}
+.make-patterns .make-none {
+  margin: 0;
+}
+.make-later {
+  border: 2px dashed var(--track);
+  border-radius: var(--r-sm);
+  padding: 0 10px;
+}
+.make-later[open] {
+  padding-bottom: 10px;
+}
+.make-later > summary {
+  cursor: pointer;
+  font-family: var(--round);
+  font-weight: 800;
+  font-size: 14px;
+  line-height: 20px;
+  padding-block: 12px;
+}
+.make-later .bag-item {
+  border-style: dashed;
+  border-color: color-mix(in srgb, var(--ink-soft) 45%, transparent);
+}
+.make-later .bag-text span {
+  color: var(--ink-soft);
+}
+.make-later .bag-text .some {
+  color: var(--ink);
+  font-weight: 700;
+}
+.make-patterns .bag-text .have {
+  color: var(--ink);
+  font-weight: 800;
+}
+.make-later .is-made {
+  border-style: solid;
+}
+.make-made {
+  font-family: var(--round);
+  font-weight: 800;
+  color: var(--ink-soft);
+}
