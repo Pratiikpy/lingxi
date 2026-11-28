@@ -461,7 +461,10 @@ export interface CareResult {
  * The owner does something. The pet is first brought up to the present, then the
  * care is applied, then one live beat runs with the action on the brain's pins.
  */
-export function care(p0: Pet, c: Care, now: number, brain: Brain, event = EVENT.none): CareResult {
+/** What a pet senses beside the care: nothing, a friend, a toy or something scary. */
+export type SensedEvent = (typeof EVENT)[keyof typeof EVENT];
+
+export function care(p0: Pet, c: Care, now: number, brain: Brain, event: SensedEvent = EVENT.none): CareResult {
   const p = cloneForEdit(catchUp(p0, now, brain));
   let action: number = ACTION.none;
   let note: CareResult["note"] = "listened";
