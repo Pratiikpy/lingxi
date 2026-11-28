@@ -401,11 +401,23 @@ test("the shops on the fork, settled on chain, and what a visiting friend sees",
       timeout: 90_000,
     });
     const burned = await fork.extrasBurned();
-    const shown = Number((await row.locator(".nb-value").innerText()).replace(/[^0-9.]/g, ""));
-    expect(
-      shown,
-      `live numbers: burned by extras equals the chain's own total (${Number(burned) / 1e8} BEM)`,
-    ).toBeCloseTo(Number(burned) / 1e8, 9);
+    // R74: the server reads the numbers every 40 s and the page says they are at most a minute old, so a purchase made
+    // moments ago shows within that minute: the page is read again (it refreshes itself each minute) until it does
+    await expect
+      .poll(
+        async () => {
+          const text = await row.locator(".nb-value").innerText();
+          const shown = Number(text.replace(/[^0-9.]/g, ""));
+          if (Math.abs(shown - Number(burned) / 1e8) > 1e-9) await dp.reload();
+          return shown;
+        },
+        {
+          message: `live numbers: burned by extras equals the chain's own total (${Number(burned) / 1e8} BEM), within the page's minute`,
+          timeout: 90_000,
+          intervals: [5_000],
+        },
+      )
+      .toBeCloseTo(Number(burned) / 1e8, 9);
     await dp.screenshot({ path: test.info().outputPath("numbers-zh-dark-desktop.png"), fullPage: true });
 
     await dp.goto(`${desk.web}/verify.html#${petId}`);
