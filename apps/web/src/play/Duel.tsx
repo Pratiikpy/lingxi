@@ -149,7 +149,7 @@ export function DuelArrival({
             >
               {lang === "zh" ? "再试一次" : "Try again"}
             </button>
-            <button type="button" className="btn" onClick={close}>
+            <button type="button" className="btn" onClick={close} data-dismiss>
               {lang === "zh" ? "好的" : "OK"}
             </button>
           </div>
@@ -162,7 +162,7 @@ export function DuelArrival({
       <div className="fam-modal" role="dialog" aria-modal="true">
         <div className="fam-card">
           <p>{lang === "zh" ? "这个切磋链接坏了，打不开。" : "This spar link is damaged and can't be opened."}</p>
-          <button type="button" className="btn" onClick={close}>
+          <button type="button" className="btn" onClick={close} data-dismiss>
             {lang === "zh" ? "好的" : "OK"}
           </button>
         </div>

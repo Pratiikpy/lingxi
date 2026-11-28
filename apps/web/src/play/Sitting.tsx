@@ -293,7 +293,7 @@ export function SitArrival() {
               ? "这个照看链接打不开了（可能已经结束）。"
               : "This sitting link can't be opened (it may have ended)."}
           </p>
-          <button type="button" className="btn" onClick={close}>
+          <button type="button" className="btn" onClick={close} data-dismiss>
             {lang === "zh" ? "好的" : "OK"}
           </button>
         </div>

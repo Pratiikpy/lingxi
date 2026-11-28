@@ -163,7 +163,8 @@ export function LockedTab({
         <p>{t(`reveal.${gate}` as Key, { name: petName, day: OPENS_ON[gate] })}</p>
         <p className="small">{t("reveal.why")}</p>
         <div className="row">
-          <button type="button" className="btn" onClick={onWait}>
+          {/* R73: Escape and Back take this way out, never "Open everything now" */}
+          <button type="button" className="btn" onClick={onWait} data-dismiss>
             {t("reveal.wait")}
           </button>
           <button type="button" className="btn primary" onClick={onOpenAll}>

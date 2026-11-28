@@ -3,7 +3,9 @@
  * is open, Tab and Shift+Tab move only among its own controls (the one on top, when several are open); a dialog that
  * appears takes the focus, and gives it back to where it was when it goes. Sheets (Sheets.tsx) move the focus in and
  * back out themselves; for them this only keeps Tab inside. The back button closes a dialog through its close button
- * (P6, backStack.ts); sheets register with the back button themselves.
+ * (P6, backStack.ts); sheets register with the back button themselves. R73: and Escape takes the same way out as
+ * Back, on the dialog on top: its close button, or the choice marked `data-dismiss` ("I'll wait", "OK", "Later") where
+ * it has no close button. A dialog that asks for an answer has neither, and Escape answers nothing for the player.
  */
 import { onBack } from "../game/backStack";
 
@@ -11,6 +13,8 @@ const MODAL = '[aria-modal="true"]';
 const FOCUSABLE = 'a[href], button, input, select, textarea, summary, [tabindex]:not([tabindex="-1"])';
 /** A dialog's own close button, in either language (the game's "close" string). */
 const CLOSE = 'button[aria-label="Close"], button[aria-label="关闭"]';
+/** A dialog's way out: its close button, or the choice that leaves it as it was (R73). */
+const WAY_OUT = `${CLOSE}, button[data-dismiss]`;
 
 /** The controls the keyboard can reach inside `box`, in order. */
 export function focusables(box: HTMLElement): HTMLElement[] {
@@ -63,14 +67,26 @@ export function trapTab(e: Pick<KeyboardEvent, "shiftKey" | "preventDefault">, b
 
 /** Starts watching the page's dialogs; returns the call that stops it. */
 export function installModalFocus(doc: Document = document): () => void {
+  // R73: Escape leaves the dialog on top by its way out; a sheet closes itself (Sheets.tsx), and one under the dialog
+  // never hears this Escape, so one press closes one thing
+  const leave = (e: KeyboardEvent) => {
+    const top = topModal(doc);
+    if (!top || top.classList.contains("sheet")) return;
+    const out = top.querySelector<HTMLButtonElement>(WAY_OUT);
+    if (!out || out.disabled) return;
+    e.preventDefault();
+    e.stopPropagation();
+    out.click();
+  };
   const onKey = (e: KeyboardEvent) => {
+    if (e.key === "Escape") return leave(e);
     if (e.key !== "Tab") return;
     const top = topModal(doc);
     if (top) trapTab(e, top);
   };
   // a dialog that is not a sheet takes the focus when it appears, and gives it back when it goes
   const returnTo = new Map<HTMLElement, HTMLElement | null>();
-  // P6: and the back button: a dialog with a close button is closed by it; one that asks for an answer keeps Back
+  // P6: and the back button: a dialog with a way out is left by it (R73); one that asks for an answer keeps Back
   // (the dialog stays, and the game is not left behind a question nobody answered)
   const backOff = new Map<HTMLElement, () => void>();
   const holdBack = (el: HTMLElement) => {
@@ -78,7 +94,7 @@ export function installModalFocus(doc: Document = document): () => void {
       el,
       onBack(() => {
         if (!el.isConnected) return;
-        const close = el.querySelector<HTMLButtonElement>(CLOSE);
+        const close = el.querySelector<HTMLButtonElement>(WAY_OUT);
         if (close) close.click();
         else holdBack(el);
       }),

@@ -256,6 +256,7 @@ function AwayCard({ pet, absence }: { pet: Pet; absence: { petKey: string; from:
         <button
           type="button"
           className="btn primary"
+          data-dismiss
           onClick={() => {
             play("tap");
             clear();

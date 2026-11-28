@@ -341,7 +341,7 @@ export function LevelUpMoment() {
               <button type="button" className="btn primary" onClick={() => (play("tap"), setCelebrate(null), show())}>
                 {L("Choose a skill", "选一个技能")}
               </button>
-              <button type="button" className="btn" onClick={() => (play("tap"), setCelebrate(null))}>
+              <button type="button" className="btn" onClick={() => (play("tap"), setCelebrate(null))} data-dismiss>
                 {L("Later", "等会儿")}
               </button>
             </div>
