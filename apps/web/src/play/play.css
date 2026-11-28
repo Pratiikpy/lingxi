@@ -528,7 +528,11 @@
   flex-direction: column;
   gap: 6px;
 }
+/* R69: a rule's spoken sentence (.sr-only, laid out where it stands) belongs to its row. Placed by a box outside the
+   room card's scrolling list it escaped the list's clipping, and on a desktop the rules below the card's fold made the
+   room page 1198 px tall in an 800 px window, so a sheet's scroll ran on into the page behind it */
 .rules li {
+  position: relative;
   display: flex;
   align-items: center;
   gap: 6px;
@@ -622,6 +626,11 @@
 }
 
 /* sheets */
+/* R69: a sheet is modal, so while one is open the page behind it holds still (a wheel or a swipe past the sheet's end,
+   or over its head or the dim around it, moved the room up under it), and the room is where it was when it closes */
+html:has(.sheet) {
+  overflow: hidden;
+}
 .scrim {
   position: fixed;
   inset: 0;
@@ -663,6 +672,7 @@
 }
 .sbody {
   overflow: auto;
+  overscroll-behavior: contain;
   /* R35: 6 px of the gap under the sheet's title belongs to the scrolling box, so the first row's 44 px touch areas
      (tabs drawn 34 to 40 px) are not cut at the box's top edge; where the content sits is unchanged */
   margin-top: -6px;
@@ -846,6 +856,8 @@
     min-height: 0;
   }
   .mindcard .pad {
+    /* R69: a box that scrolls holds what it scrolls, whatever is placed inside it */
+    position: relative;
     flex: 1 1 auto;
     overflow: auto;
     min-height: 0;
