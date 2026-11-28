@@ -136,19 +136,25 @@
 .pads > .pad:disabled {
   cursor: default;
 }
+/* R75: the room the pet is in, as the catch game is played in it (its picture set from Games.tsx), over the meadow's
+   colour by time of day while the picture loads; the hiding places stand on its floor */
 .seek-area {
   position: relative;
   height: 170px;
   border: 2px solid var(--line);
   border-radius: 16px;
-  background: linear-gradient(#d8f0e3, #b6e2c4);
+  overflow: hidden;
+  background-color: #b6e2c4;
+  background-size: cover;
+  background-position: center 72%;
+  image-rendering: pixelated;
 }
 /* P6: the game's little meadow follows the time of day, as the room does */
 .seek-area[data-phase="evening"] {
-  background: linear-gradient(#f6c7a0, #c9a7c9);
+  background-color: #c9a7c9;
 }
 .seek-area[data-phase="night"] {
-  background: linear-gradient(#2b2f5c, #1f3b45);
+  background-color: #1f3b45;
 }
 .spot {
   position: absolute;
@@ -170,12 +176,11 @@
   bottom: 24px;
   transition: opacity 0.2s;
 }
+/* drawn 20 by 15 pixels (seekCovers.ts), shown four to a pixel */
 .spot-cover {
   position: relative;
-  width: 86px;
-  height: 62px;
-  border: 2px solid #2b2140;
-  border-radius: 50% 50% 18px 18px;
+  width: 80px;
+  height: 60px;
   transition: transform 0.35s var(--ease);
 }
 .spot.wrong .spot-cover {
@@ -192,6 +197,9 @@
 @media (prefers-reduced-motion: reduce) {
   .spot.wrong .spot-cover {
     animation: none;
+  }
+  .spot-cover {
+    transition: none;
   }
 }
 @media (max-width: 480px) {

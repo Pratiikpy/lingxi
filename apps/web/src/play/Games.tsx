@@ -33,6 +33,7 @@ import { Icon, type IconName } from "./icons";
 import "./games.css";
 import { now } from "../game/gameClock";
 import { phaseNow } from "../scene/dayPhase";
+import { COVER_H, COVER_W, SEEK_COVERS } from "./seekCovers";
 
 type Lang = "en" | "zh";
 const drawn = (s: string): PetStage => (s === "elder" ? "adult" : (s as PetStage));
@@ -361,12 +362,34 @@ function PatternGame({ onEnd }: { onEnd: (score: number) => void }) {
 
 /* ── Seasonal Hide-and-Seek ───────────────────────────────────────────────── */
 
-const SPOT_COLOURS: Record<string, [string, string]> = {
-  spring: ["#ffb7d0", "#ff8fb6"],
-  summer: ["#ffe2b8", "#f5b97a"],
-  autumn: ["#f0a35a", "#c9692e"],
-  winter: ["#eef6ff", "#c3dcf5"],
-};
+/** R75: a hiding place drawn as pixel art, as crisp at any scale as the pet beside it. */
+function SeekCover({ season, lifted }: { season: keyof typeof SEASONAL; lifted: boolean }) {
+  const ref = useRef<HTMLCanvasElement>(null);
+  const art = SEEK_COVERS[season];
+  useEffect(() => {
+    const ctx = ref.current?.getContext("2d");
+    if (!ctx) return;
+    ctx.clearRect(0, 0, COVER_W, COVER_H);
+    art.rows.forEach((row, y) => {
+      for (let x = 0; x < row.length; x++) {
+        const colour = art.colors[row[x] ?? "."];
+        if (!colour) continue;
+        ctx.fillStyle = colour;
+        ctx.fillRect(x, y, 1, 1);
+      }
+    });
+  }, [art]);
+  return (
+    <canvas
+      ref={ref}
+      className="pixel spot-cover"
+      width={COVER_W}
+      height={COVER_H}
+      aria-hidden="true"
+      style={{ transform: lifted ? "translateY(-46px)" : "none" }}
+    />
+  );
+}
 
 function SeekGame({ pet, season, onEnd }: { pet: Pet; season: keyof typeof SEASONAL; onEnd: (score: number) => void }) {
   const lang = useLang((s) => s.lang) as Lang;
@@ -384,7 +407,9 @@ function SeekGame({ pet, season, onEnd }: { pet: Pet; season: keyof typeof SEASO
     [pet],
   );
   const swaps = useMemo(() => shuffles(round, seed + round * 7919), [round, seed]);
-  const [c1, c2] = SPOT_COLOURS[season]!;
+  // R75: the game is played in the room the pet is in, as it looks now, as the catch game is
+  const room = useWorld((s) => s.world.room);
+  const backdrop = roomOrHome(room).bgs[phaseNow()];
 
   useEffect(() => {
     if (phase === "peek") {
@@ -451,7 +476,7 @@ function SeekGame({ pet, season, onEnd }: { pet: Pet; season: keyof typeof SEASO
               : ""}
         </span>
       </div>
-      <div className="seek-area" data-phase={phaseNow()}>
+      <div className="seek-area" data-phase={phaseNow()} style={{ backgroundImage: `url(${backdrop})` }}>
         {[0, 1, 2].map((cup) => {
           const position = slots[cup]!;
           // the pet hides under the cup that started where it stood
@@ -477,13 +502,7 @@ function SeekGame({ pet, season, onEnd }: { pet: Pet; season: keyof typeof SEASO
               <span className="spot-pet" style={{ opacity: showPet ? 1 : 0 }}>
                 <Sprite canvas={art} palette={PALETTE_OF[pet.line]} scale={1.5} />
               </span>
-              <span
-                className="spot-cover"
-                style={{
-                  background: `radial-gradient(circle at 40% 35%, ${c1}, ${c2})`,
-                  transform: showPet ? "translateY(-46px)" : "none",
-                }}
-              />
+              <SeekCover season={season} lifted={showPet} />
             </motion.button>
           );
         })}
