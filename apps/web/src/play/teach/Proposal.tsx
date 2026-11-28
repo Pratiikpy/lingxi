@@ -8,7 +8,7 @@
  * the pet until the owner confirms, and the game rules check it again then.
  */
 
-import { useMemo, useState } from "react";
+import { useEffect, useId, useMemo, useRef, useState } from "react";
 import { motion } from "motion/react";
 import { type Rule } from "@lingxi/brain";
 import { type Pet, lessonCost, roomMakers, stageOf, trapsAfter } from "@lingxi/game";
@@ -19,6 +19,7 @@ import { programFor, useGame } from "../../game/store";
 import { Chips } from "../parts";
 import { useTrial } from "../../game/tryIt";
 import { chipsFor } from "../ruleText";
+import { bringIntoView } from "../bringIntoView";
 import "../teach.css";
 import { now } from "../../game/gameClock";
 import { CostLine, REASON_KEY, RulePreview, type Source, TrapNote, specOf } from "./shared";
@@ -46,6 +47,13 @@ export function Proposal({
   const swapLesson = useGame((s) => s.swapLesson);
   const [err, setErr] = useState<string | null>(null);
   const [share, setShare] = useState(false);
+  const card = useRef<HTMLDivElement>(null);
+  const said = useId();
+  // R60: the card answers the tap that made it where the player can see it (Pet School's levels are a screen and a
+  // half above it), and takes the focus, since the level or the form that asked for it is disabled or gone now
+  useEffect(() => {
+    if (card.current) bringIntoView(card.current);
+  }, []);
   // G7: a lesson too big for the taught budget is taught as a swap too, forgetting one that makes room
   const stage = stageOf(pet, now());
   const fitCheck = useMemo(() => {
@@ -83,13 +91,17 @@ export function Proposal({
   };
   return (
     <motion.div
+      ref={card}
       className="proposal"
+      role="group"
+      aria-labelledby={said}
+      tabIndex={-1}
       initial={{ opacity: 0, y: 6 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.22, ease: [0.23, 1, 0.32, 1] }}
     >
       {reply && <p className="reply">{reply}</p>}
-      <p className="small">
+      <p className="small" id={said}>
         {t(
           source.kind === "school"
             ? "teach.becameSchool"
