@@ -104,10 +104,13 @@
   transform: translateX(-50%);
   pointer-events: none;
 }
+/* R67: the pads stand clear of the sheet's foot: the bottom row sat on the scrolling box's edge, its lift cut off and,
+   on a phone held sideways, under the sheet's fading foot */
 .pads {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 12px;
+  padding-bottom: 8px;
 }
 /* written as .pads > .pad: the room's thinking card has a .pad of its own (play.css) whose column layout and padding
    took the game's pads over and pushed each icon to the top of its pad */
@@ -203,5 +206,15 @@
 @container sheet (min-width: 640px) {
   .game-list {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+/* R67: a phone held sideways is a short sheet: the four pads stand in one row, each still far over 44 px, so the whole
+   game is on screen above the sheet's fading foot */
+@media (orientation: landscape) and (max-height: 520px) {
+  .pads {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+  .pads > .pad {
+    height: 88px;
   }
 }
