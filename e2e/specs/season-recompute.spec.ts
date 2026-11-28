@@ -105,20 +105,25 @@ for (const look of [
     const { page } = p;
     await hatch(p, "Kiri");
     const button = await openSeason(page);
-    // every task the page's main thread runs from here is measured
+    // every task the page's main thread runs from here is measured, with when it ran
     await page.evaluate(() => {
-      const w = window as unknown as { longest: number };
-      w.longest = 0;
+      const w = window as unknown as { tasks: Array<[number, number]> };
+      w.tasks = [];
       new PerformanceObserver((list) => {
-        for (const e of list.getEntries()) w.longest = Math.max(w.longest, e.duration);
+        for (const e of list.getEntries()) w.tasks.push([e.startTime, e.duration]);
       }).observe({ type: "longtask", buffered: false });
     });
     await button.click();
     await expect(button, "it says it is re-fighting, and cannot be pressed twice").toContainText(look.busy);
     await expect(button).toBeDisabled();
+    // R59: the test's own screenshot reads the room's WebGL canvas back, which stalls the page's main thread on a
+    // headless runner (both CI failures, 210 and 226 ms, were the desktop look, the larger canvas): its moment is noted,
+    // and a task that overlaps it is the test's own, not the page's
+    const shotFrom = await page.evaluate(() => performance.now());
     await page.screenshot({
       path: test.info().outputPath(`season-refighting-${look.lang}-${look.scheme}-${look.size}.png`),
     });
+    const shotTo = await page.evaluate(() => performance.now());
     // the page answers while the worker fights: a tap on the tab bar is handled at once
     const answered = await page.evaluate(
       () =>
@@ -132,8 +137,18 @@ for (const look of [
     await result.waitFor({ timeout: 120_000 });
     expect(await result.innerText(), "the same table the server published").toContain(look.same);
     await expect(button).toBeEnabled();
-    const longest = await page.evaluate(() => (window as unknown as { longest: number }).longest);
-    expect(longest, "no task on the main thread over 200 ms while 4,032 bouts were refought").toBeLessThan(200);
+    const tasks = await page.evaluate(() => (window as unknown as { tasks: Array<[number, number]> }).tasks);
+    const pages = tasks.filter(([at, ms]) => at + ms < shotFrom || at > shotTo);
+    const longest = Math.max(0, ...pages.map(([, ms]) => ms));
+    expect(
+      longest,
+      `no task on the main thread over 200 ms while 4,032 bouts were refought (the screenshot's own, left out: ${
+        tasks
+          .filter((t) => !pages.includes(t))
+          .map(([, ms]) => `${Math.round(ms)} ms`)
+          .join(", ") || "none"
+      })`,
+    ).toBeLessThan(200);
     await page.screenshot({ path: test.info().outputPath(`season-same-${look.lang}-${look.scheme}-${look.size}.png`) });
   });
 }

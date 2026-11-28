@@ -28,6 +28,11 @@ const identity = (page: Page) =>
     { timeout: 60_000 },
   );
 
+// R59: this test crosses TapeRelay's live nodes (an alpha network outside this repo); once in 40 CI runs a letter the
+// relay had accepted took longer than its 90 s to arrive. One retry absorbs such a hiccup; the run reports it as flaky,
+// so it is seen, and every check below is unchanged
+test.describe.configure({ retries: 1 });
+
 test("a letter goes from one pet to a friend's pet over TapeRelay, and one comes back (H13)", async ({ player }) => {
   test.setTimeout(600_000);
   const a = await player({ lang: "en", scheme: "light", size: "phone" });
