@@ -56,7 +56,7 @@
   min-width: 76px;
 }
 .fam-parent b {
-  font-family: var(--display);
+  font-family: var(--label);
   font-size: 14px;
 }
 .fam-parent small {
@@ -113,7 +113,7 @@
   min-width: 0;
 }
 .fam-pet b {
-  font-family: var(--display);
+  font-family: var(--label);
 }
 .fam-pet small {
   font-size: 12px;
@@ -153,7 +153,8 @@
   background: #ffc83d;
   color: #2b2140;
   font-style: normal;
-  font-family: var(--display);
+  font-family: var(--label);
+  font-weight: 700;
   font-size: 11px;
 }
 /* pets kept safe for a newer Lingxi (P1) */

@@ -75,7 +75,7 @@
   color: #2b2140;
 }
 .badge b {
-  font-family: var(--display);
+  font-family: var(--label);
   font-size: 12.5px;
   line-height: 1.2;
 }
@@ -130,7 +130,7 @@
   color: #6b5f7a;
 }
 .badge-toast b {
-  font-family: var(--display);
+  font-family: var(--label);
   font-size: 14px;
 }
 @media (prefers-reduced-motion: reduce) {

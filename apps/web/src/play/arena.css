@@ -68,7 +68,7 @@
   min-width: 0;
 }
 .sp-who b {
-  font-family: var(--display);
+  font-family: var(--label);
   font-size: 16px;
 }
 .sp-stars {
@@ -88,7 +88,8 @@
   line-height: 1.35;
 }
 .sp-record {
-  font-family: var(--display);
+  font-family: var(--label);
+  font-weight: 700;
   font-size: 13px;
   white-space: nowrap;
   color: var(--ink-soft);
@@ -102,7 +103,8 @@
   display: flex;
   align-items: center;
   gap: 10px;
-  font-family: var(--display);
+  font-family: var(--label);
+  font-weight: 700;
   font-size: 14px;
 }
 .sp-head .sp-cheering {
@@ -154,7 +156,7 @@
 }
 /* B7: a long name ("Juniper the Trickster") wraps onto a second line rather than being cut off on a phone */
 .sp-fighter .sp-bar b {
-  font-family: var(--display);
+  font-family: var(--label);
   font-size: 14px;
   line-height: 1.15;
   overflow-wrap: anywhere;
@@ -206,7 +208,8 @@
   border-radius: var(--r-pill);
   background: #fffdf8;
   color: #2b2140;
-  font-family: var(--display);
+  font-family: var(--label);
+  font-weight: 700;
   font-size: 13px;
 }
 .sp-result {
@@ -224,7 +227,8 @@
 }
 .sp-result .sp-coins {
   margin: 0;
-  font-family: var(--display);
+  font-family: var(--label);
+  font-weight: 700;
   color: #c98a00;
 }
 /* the coach's swap: the lesson it would forget (B2) */

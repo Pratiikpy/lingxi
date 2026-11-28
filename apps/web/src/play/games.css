@@ -41,7 +41,7 @@
   gap: 2px;
 }
 .game-card b {
-  font-family: var(--display);
+  font-family: var(--label);
 }
 .game-card small {
   color: var(--ink-soft);
@@ -76,7 +76,8 @@
 .game-hud {
   display: flex;
   justify-content: space-between;
-  font-family: var(--display);
+  font-family: var(--label);
+  font-weight: 700;
 }
 .catch-area {
   position: relative;

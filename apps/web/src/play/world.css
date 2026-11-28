@@ -35,7 +35,8 @@
   display: grid;
   place-items: center;
   color: var(--ink-soft);
-  font-family: var(--display);
+  font-family: var(--label);
+  font-weight: 700;
   font-size: 14px;
 }
 .tile:not(.here):not(.near) img {
@@ -108,7 +109,8 @@
 }
 .bag .label {
   margin: 0;
-  font-family: var(--display);
+  font-family: var(--label);
+  font-weight: 700;
   font-size: 13px;
   letter-spacing: 0.12em;
   text-transform: uppercase;

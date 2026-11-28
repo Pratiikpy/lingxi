@@ -266,7 +266,8 @@
 }
 .think em {
   font-style: normal;
-  font-family: var(--display);
+  font-family: var(--label);
+  font-weight: 700;
   font-size: 12px;
   letter-spacing: 0.1em;
   text-transform: uppercase;
@@ -321,7 +322,8 @@
   background: var(--sunny);
 }
 .op {
-  font-family: var(--display);
+  font-family: var(--label);
+  font-weight: 700;
   font-size: 12.5px;
   color: #5b4e73;
 }
@@ -498,7 +500,8 @@
   padding: 8px 14px;
   background: var(--tint);
   border-bottom: 2px solid var(--line);
-  font-family: var(--display);
+  font-family: var(--label);
+  font-weight: 700;
   font-size: 14px;
 }
 .cardbar i {
@@ -821,7 +824,8 @@ html:has(.sheet) {
   align-items: center;
 }
 .rows dt {
-  font-family: var(--display);
+  font-family: var(--label);
+  font-weight: 700;
   font-size: 13px;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -1092,7 +1096,8 @@ html:has(.sheet) {
 }
 .chainpanel .label {
   margin: 0;
-  font-family: var(--display);
+  font-family: var(--label);
+  font-weight: 700;
   font-size: 13px;
   letter-spacing: 0.12em;
   text-transform: uppercase;
@@ -1158,7 +1163,8 @@ html:has(.sheet) {
   border: 2px solid #2b2140;
   border-radius: var(--r-pill);
   background: #fffdf8;
-  font-family: var(--display);
+  font-family: var(--label);
+  font-weight: 700;
   font-size: 12px;
   letter-spacing: 0.06em;
   color: #2b2140;
@@ -1197,7 +1203,7 @@ html:has(.sheet) {
 }
 .here-list b {
   flex: 1;
-  font-family: var(--display);
+  font-family: var(--label);
 }
 .here-list ul {
   flex-basis: 100%;
@@ -1294,7 +1300,7 @@ html:has(.sheet) {
 }
 .visitor-card b {
   order: 0;
-  font-family: var(--display);
+  font-family: var(--label);
   margin-right: 4px;
   overflow-wrap: anywhere;
 }
@@ -1337,7 +1343,8 @@ html:has(.sheet) {
 
 .half-head {
   margin: 4px 0 6px;
-  font-family: var(--display);
+  font-family: var(--label);
+  font-weight: 700;
   font-size: 13px;
   color: var(--ink-soft);
 }
@@ -1349,7 +1356,8 @@ html:has(.sheet) {
   align-items: center;
   gap: 6px 8px;
   max-width: 100%;
-  font-family: var(--display);
+  font-family: var(--label);
+  font-weight: 700;
 }
 .lv-skills {
   white-space: nowrap;
@@ -3186,7 +3194,8 @@ html:has(.sheet) {
   inset: auto 0 -20px;
   text-align: center;
   font-style: normal;
-  font-family: var(--display);
+  font-family: var(--label);
+  font-weight: 700;
   font-size: 12px;
   color: #93a1c4;
 }

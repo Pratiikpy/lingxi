@@ -12,7 +12,8 @@
 .teach .label,
 .builder .label {
   margin: 0;
-  font-family: var(--display);
+  font-family: var(--label);
+  font-weight: 700;
   font-size: 13px;
   letter-spacing: 0.12em;
   text-transform: uppercase;
@@ -440,7 +441,8 @@ button.btn:disabled {
   height: 26px;
   border-radius: 50%;
   background: var(--band);
-  font-family: var(--display);
+  font-family: var(--label);
+  font-weight: 700;
   font-size: 13px;
 }
 .level-say {

@@ -311,7 +311,7 @@
   border-radius: 6px;
   background: #ffc83d;
   color: #2b2140;
-  font: 800 12px/1 var(--display);
+  font: 800 12px/1 var(--label);
   font-style: normal;
 }
 .map-quest.inline {
@@ -351,7 +351,7 @@
   border: 2px solid #2b2140;
   border-radius: 6px;
   background: #ffc83d;
-  font: 800 12px var(--display);
+  font: 800 12px var(--label);
 }
 .talk-choice.quest.ready .tq-mark {
   background: #7fd48a;

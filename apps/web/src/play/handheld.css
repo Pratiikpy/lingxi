@@ -54,7 +54,8 @@
 .handheld-stepper output {
   min-width: 1.6em;
   text-align: center;
-  font-family: var(--display);
+  font-family: var(--label);
+  font-weight: 700;
   font-size: 1.05rem;
   font-variant-numeric: tabular-nums;
 }

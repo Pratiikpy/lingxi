@@ -6,8 +6,8 @@
  * label face (--label, tokens.css).
  *
  * Every stylesheet rule that sets the pixel face must set a size of its own whose smallest value is 20px or more. The
- * game screens' rules below are still to be changed (apps/web/src/play, where another change is under way): each is
- * listed until it is, and the list may only shrink.
+ * game screens' rules were the last to move (R63's in-game part, forty of them, now in the label face): the list of
+ * rules still to change is empty, and since it may only shrink, it stays so.
  */
 import { readFileSync, readdirSync } from "node:fs";
 import { join, relative } from "node:path";
@@ -17,49 +17,8 @@ const root = join(import.meta.dirname, "..");
 const src = join(root, "apps", "web", "src");
 const SMALLEST_PX = 20;
 
-/** The game screens' rules still to move to the label face: `file | selector`. */
-const STILL_TO_CHANGE = new Set([
-  "play/arena.css | .sp-who b",
-  "play/arena.css | .sp-record",
-  "play/arena.css | .sp-head",
-  "play/arena.css | .sp-fighter .sp-bar b",
-  "play/arena.css | .sp-move",
-  "play/arena.css | .sp-result .sp-coins",
-  "play/arenarun.css | .ar-vs",
-  "play/badges.css | .badge b",
-  "play/badges.css | .badge-toast b",
-  "play/decor.css | .decor-head b",
-  "play/family.css | .fam-parent b",
-  "play/family.css | .fam-pet b",
-  "play/family.css | .pet-count",
-  "play/games.css | .game-card b",
-  "play/games.css | .game-hud",
-  "play/gift.css | .gift-item i",
-  "play/handheld.css | .handheld-stepper output",
-  "play/hatch.css | .name-row label",
-  "play/hatch.css | .hatch-perk-h",
-  "play/hatch.css | .instincts legend",
-  "play/play.css | .think em",
-  "play/play.css | .op",
-  "play/play.css | .cardbar",
-  "play/play.css | .rows dt",
-  "play/play.css | .chainpanel .label",
-  "play/play.css | .social .here",
-  "play/play.css | .here-list b",
-  "play/play.css | .visitor-card b",
-  "play/play.css | .half-head",
-  "play/play.css | .lv",
-  "play/play.css | .bh-lamp i",
-  "play/quests.css | .map-quest",
-  "play/quests.css | .tq-mark",
-  "play/redpacket.css | .rp-envelope",
-  "play/rewind.css | .rw-clock",
-  "play/talk.css | .talk-name",
-  "play/teach.css | .teach .label, .builder .label",
-  "play/teach.css | .level-n",
-  "play/world.css | .tile.fog",
-  "play/world.css | .bag .label",
-]);
+/** Rules still to move to the label face, `file | selector`: none, and none may be added. */
+const STILL_TO_CHANGE = new Set<string>([]);
 
 const walk = (d: string): string[] =>
   readdirSync(d, { withFileTypes: true }).flatMap((e) =>

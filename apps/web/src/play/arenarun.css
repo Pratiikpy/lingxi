@@ -273,7 +273,7 @@
 }
 .ar-vs {
   align-self: center;
-  font: 800 0.9rem var(--display);
+  font: 800 0.9rem var(--label);
   color: #e5486c;
 }
 .ar-explain {

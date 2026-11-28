@@ -58,7 +58,7 @@
   white-space: nowrap;
 }
 .decor-head b {
-  font-family: var(--display);
+  font-family: var(--label);
   font-size: 15px;
 }
 .decor-head span {

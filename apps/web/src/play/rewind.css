@@ -62,7 +62,8 @@
   font-size: 13px;
 }
 .rw-clock {
-  font-family: var(--display);
+  font-family: var(--label);
+  font-weight: 700;
   font-size: 18px;
   font-variant-numeric: tabular-nums;
 }
