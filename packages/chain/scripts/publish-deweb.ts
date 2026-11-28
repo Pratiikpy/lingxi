@@ -145,6 +145,60 @@ console.log(
   `site ${name}, container ${container}, ${manifest.files.length} files, ${(manifest.total / 1e6).toFixed(2)} MB; deployer ${formatEther(start)} OKB`,
 );
 
+if (process.argv.includes("--plan")) {
+  // H13b: what a publish of this build would send and cost, read from X Layer and priced by its own gas estimates and
+  // gas price; nothing is signed or sent. A chunk after a file's first is priced as a first chunk of the same size (an
+  // append cannot be estimated before its file exists; storing the bytes is most of either's gas)
+  const gasPrice = await pub.getGasPrice();
+  const estimate = (functionName: "putFile" | "removeFile", args: readonly unknown[]) =>
+    pub.estimateContractGas({ address: SITES, abi: sitesAbi, functionName, args, account: account.address } as never);
+  let gas = 0n;
+  let toSend = 0;
+  let bytes = 0;
+  let chunksToSend = 0;
+  for (const f of manifest.files) {
+    const data = readFileSync(resolve(webDir, "dist-deweb", f.path));
+    const info = (await pub.readContract({
+      address: SITES,
+      abi: sitesAbi,
+      functionName: "fileInfo",
+      args: [container, f.path],
+    })) as readonly [number, string, Hex, number, bigint];
+    const chunks = Math.ceil(data.length / CHUNK) || 1;
+    const have = info[2].toLowerCase() === f.sha256.toLowerCase() ? Number(info[4]) : 0;
+    if (have >= chunks && info[0] === data.length) continue;
+    const type = TYPES[f.path.slice(f.path.lastIndexOf(".") + 1).toLowerCase()] ?? "application/octet-stream";
+    for (let i = have; i < chunks; i++) {
+      const part = data.subarray(i * CHUNK, (i + 1) * CHUNK);
+      gas += await estimate("putFile", [container, `${f.path}.plan-${i}`, type, f.sha256, toHex(part)]);
+    }
+    toSend++;
+    bytes += data.length;
+    chunksToSend += chunks - have;
+  }
+  const wanted = new Set(manifest.files.map((f) => f.path));
+  const total = Number(
+    (await pub.readContract({ address: SITES, abi: sitesAbi, functionName: "pathCount", args: [container] })) as bigint,
+  );
+  const onChain: string[] = [];
+  for (let from = 0; from < total; from += 200)
+    onChain.push(
+      ...((await pub.readContract({
+        address: SITES,
+        abi: sitesAbi,
+        functionName: "pathsRange",
+        args: [container, BigInt(from), 200n],
+      })) as string[]),
+    );
+  const stale = onChain.filter((p) => !wanted.has(p));
+  for (const p of stale) gas += await estimate("removeFile", [container, p]);
+  const okb = gas * gasPrice;
+  console.log(
+    `plan: ${toSend} files to send (${(bytes / 1e6).toFixed(2)} MB, ${chunksToSend} chunks), ${manifest.files.length - toSend} already there, ${stale.length} to remove; about ${gas} gas at ${formatEther(gasPrice * 1_000_000_000n)} gwei, about ${formatEther(okb)} OKB; the deployer holds ${formatEther(start)} OKB`,
+  );
+  process.exit(0);
+}
+
 if (
   !((await pub.readContract({
     address: OPENER,
