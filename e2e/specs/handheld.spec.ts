@@ -338,7 +338,9 @@ const CARDPUTER = `(() => {
 test("a Cardputer over USB takes the pet, gives it back, and is never emptied of another game's pet (en, light, desktop)", async ({
   player,
 }) => {
-  test.setTimeout(300_000);
+  // it lives through the pet's real minute beats (a wait each minute), so its length follows where the minutes fall
+  // and the runner's speed: 2.5 to 4.2 min in CI, 6.4 once; the budget is the 10 min its sibling above has
+  test.setTimeout(600_000);
   const p = await player({ lang: "en", scheme: "light", size: "desktop", init: CARDPUTER });
   watchRequests(p);
   const wasm = readFileSync(join(ROOT, "packages/handheld/wasm/lingxi-handheld.wasm"));
