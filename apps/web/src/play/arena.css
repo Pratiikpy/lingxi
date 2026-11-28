@@ -565,8 +565,9 @@
   margin: 0 4px;
   color: var(--ink-soft);
 }
+/* R75: drawn 44 px tall: drawn 32 with a touch area round it, the rows beside it cut that area to 39 */
 .sp-hint-btn {
-  min-height: 32px;
+  min-height: 44px;
   padding: 0 10px;
   border: 2px solid var(--line);
   border-radius: var(--r-pill);

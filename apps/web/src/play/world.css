@@ -45,6 +45,19 @@
   cursor: pointer;
   box-shadow: 0 0 0 2px var(--sunny);
   transition: transform var(--t-micro) var(--ease);
+  /* R75: a room the pet can walk to answers on 44 px. Its tile is as wide as the map allows (37 px on a 360 phone), so
+     its touch area reaches past it, over the gaps and the tiles round it, which are not open (they are the room the
+     pet is in, rooms out of reach, or the corners of the other rooms it can walk to); the picture keeps the corners */
+  overflow: visible;
+  z-index: 1;
+}
+.tile.near::after {
+  content: "";
+  position: absolute;
+  inset: min(0px, calc(50% - 22px));
+}
+.tile.near img {
+  border-radius: 6px;
 }
 .tile.near:hover {
   transform: translateY(-2px);

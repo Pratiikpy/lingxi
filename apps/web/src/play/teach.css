@@ -518,15 +518,21 @@ button.btn:disabled {
   gap: var(--s2);
   margin-bottom: var(--s2);
 }
+/* R75: the fold-out's line is 44 px of its own (drawn 21, its touch area was cut to 33 by the sheet's scrolling edge) */
 .sandbox {
   border: 2px dashed var(--line);
   border-radius: var(--r-md);
-  padding: 8px 12px;
+  padding: 0 12px;
+}
+.sandbox[open] {
+  padding-bottom: 8px;
 }
 .sandbox summary {
   cursor: pointer;
   font-weight: 800;
   font-size: 14px;
+  line-height: 20px;
+  padding-block: 12px;
 }
 .sb-grid {
   display: grid;

@@ -118,40 +118,54 @@ export function MapPanel({ onGone }: { onGone: () => void }) {
           const isHere = r.index === world.room;
           const canGo = near.has(r.index);
           const label = visited || canGo ? r.name[lang] : t("map.unknown");
-          return (
-            <button
-              key={r.index}
-              type="button"
-              className={`tile${isHere ? " here" : ""}${canGo ? " near" : ""}${visited || canGo ? "" : " fog"}`}
-              style={{ gridColumn: r.x - minX + 1, gridRow: r.y - minY + 1 }}
-              disabled={!canGo}
-              aria-label={isHere ? `${label} · ${t("map.here")}` : label}
-              onClick={() => {
-                if (move(r.index)) onGone();
-              }}
-            >
+          // a quest waiting there is said in the tile's own name (a mark's label inside a named tile was never read)
+          const quest = marks[r.index] && (visited || canGo) ? marks[r.index] : null;
+          const questSaid =
+            quest === "✓"
+              ? lang === "zh"
+                ? "有任务可以交"
+                : "a quest to hand in"
+              : quest
+                ? lang === "zh"
+                  ? "有新任务"
+                  : "a new quest"
+                : null;
+          const face = (
+            <>
               {visited || canGo ? <img className="pixel" src={r.bgs.day} alt="" loading="lazy" /> : <span>?</span>}
               {isHere && <i className="dot" aria-hidden="true" />}
               {builderIn(r.index) && (visited || canGo) && (
                 <i className="lane-mark" title={builderIn(r.index)!.name[lang]} aria-hidden="true" />
               )}
-              {marks[r.index] && (visited || canGo) && (
-                <i
-                  className={`map-quest${marks[r.index] === "✓" ? " ready" : ""}`}
-                  aria-label={
-                    marks[r.index] === "✓"
-                      ? lang === "zh"
-                        ? "有任务可以交"
-                        : "a quest to hand in"
-                      : lang === "zh"
-                        ? "有新任务"
-                        : "a new quest"
-                  }
-                >
+              {quest && (
+                <i className={`map-quest${marks[r.index] === "✓" ? " ready" : ""}`} aria-hidden="true">
                   {marks[r.index]}
                 </i>
               )}
+            </>
+          );
+          const className = `tile${isHere ? " here" : ""}${canGo ? " near" : ""}${visited || canGo ? "" : " fog"}`;
+          const place = { gridColumn: r.x - minX + 1, gridRow: r.y - minY + 1 };
+          const name = [label, isHere ? t("map.here") : null, questSaid].filter(Boolean).join(" · ");
+          // R75: only a room the pet can walk to is a button; the rest are pictures with their names, so the keyboard
+          // reaches only what it can use and no control lies there that takes no tap
+          return canGo ? (
+            <button
+              key={r.index}
+              type="button"
+              className={className}
+              style={place}
+              aria-label={name}
+              onClick={() => {
+                if (move(r.index)) onGone();
+              }}
+            >
+              {face}
             </button>
+          ) : (
+            <span key={r.index} className={className} style={place} role="img" aria-label={name}>
+              {face}
+            </span>
           );
         })}
       </div>

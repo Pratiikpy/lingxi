@@ -1361,8 +1361,9 @@ html:has(.sheet) {
 .sit-form .row {
   align-items: center;
 }
+/* R75: 44 px, like every control a player taps (the sitting panel's Days was 40) */
 .chainpanel .input {
-  min-height: 40px;
+  min-height: 44px;
   padding: 0 12px;
   border: 2px solid var(--line);
   border-radius: 12px;
