@@ -5,6 +5,7 @@ import { existsSync, readFileSync, readdirSync, rmSync, writeFileSync } from "no
 import { pathToFileURL } from "node:url";
 import { join, relative, resolve } from "node:path";
 import { hasBannedName, scanNames } from "../../packages/world/src/names";
+import { homeRoomArt, offlineFiles } from "./src/boot/offlineList";
 
 /** build.json beside the pages: the commit a build came from, so anyone can check what a site is serving. */
 function buildStamp(): Plugin {
@@ -59,9 +60,10 @@ function namesGuard(): Plugin {
 }
 
 /**
- * P6: the service worker's list of what the game needs to open offline (public/sw.js): the game page and every script,
- * style and font of its first screen and of the full game behind it, under this build's version, so each release
- * installs a fresh copy and clears the last. Written into the built sw.js once the bundle is on disk.
+ * P6, R61: the service worker's list of what the game needs to open offline (public/sw.js): the game page, every script
+ * it can load (the lazy ones too) with its styles and faces (src/boot/offlineList.ts), and the home room's pictures for
+ * each time of day, under this build's version, so each release installs a fresh copy and clears the last. Written into
+ * the built sw.js once the bundle is on disk.
  */
 function offlineWorker(): Plugin {
   let files: string[] = [];
@@ -71,37 +73,31 @@ function offlineWorker(): Plugin {
     apply: "build",
     writeBundle(options, bundle) {
       outDir = options.dir ?? "";
-      const chunks = Object.values(bundle).filter((c): c is Extract<typeof c, { type: "chunk" }> => c.type === "chunk");
-      const norm = (id: string) => id.split("\\").join("/");
-      // the game's entry is the chunk Vite builds for play.html (found by name, a module can sit in a shared chunk
-      // that is not the one the page loads); then the chunks it reaches without the network
-      const entry = chunks.find(
-        (c) => c.isEntry && !!c.facadeModuleId && norm(c.facadeModuleId).endsWith("/play.html"),
+      const chunks = Object.values(bundle).flatMap((c) =>
+        c.type === "chunk"
+          ? [
+              {
+                fileName: c.fileName,
+                isEntry: c.isEntry,
+                facadeModuleId: c.facadeModuleId,
+                imports: c.imports,
+                dynamicImports: c.dynamicImports,
+                importedCss: c.viteMetadata?.importedCss ?? [],
+                importedAssets: c.viteMetadata?.importedAssets ?? [],
+              },
+            ]
+          : [],
       );
-      const roots = [
-        entry,
-        ...["/src/play/FirstVisit.tsx", "/src/play/Crash.tsx", "/src/play/PlayApp.tsx"].map((e) =>
-          chunks.find((c) => c.moduleIds.some((id) => norm(id).endsWith(e))),
-        ),
-      ];
-      if (roots.some((c) => !c)) {
-        this.warn("the game's entry chunks were not found: the offline list is empty");
-        return;
-      }
-      const seen = new Set<string>();
-      const walk = (name: string) => {
-        if (seen.has(name)) return;
-        seen.add(name);
-        for (const dep of chunks.find((c) => c.fileName === name)?.imports ?? []) walk(dep);
+      // the home room is where every pet starts and comes back to: its picture for each time of day opens offline at
+      // any hour, with the food the pet thinks of when hungry (src/scene/petLife.ts), which every room draws; the other
+      // rooms' pictures are kept as they are visited (sw.js)
+      const sheet = JSON.parse(
+        readFileSync(resolve(__dirname, "../../packages/world/src/data/world.json"), "utf8"),
+      ) as {
+        rooms: Array<{ index: number; bgs: Record<string, string> }>;
       };
-      for (const c of roots) walk(c!.fileName);
-      const css = [...seen].flatMap((f) => [
-        ...(chunks.find((c) => c.fileName === f)?.viteMetadata?.importedCss ?? []),
-      ]);
-      const fonts = Object.keys(bundle).filter(
-        (f) => /\.woff2$/.test(f) && /(pixelify-sans|baloo-2)-latin-wght-normal/.test(f),
-      );
-      files = ["play.html", "manifest.webmanifest", "favicon.png", ...seen, ...new Set(css), ...fonts];
+      const room = [...homeRoomArt(sheet.rooms), "art/items/rice_mochi.png"];
+      files = offlineFiles(chunks, "play.html", ["manifest.webmanifest", "favicon.png", ...room]);
     },
     closeBundle() {
       const sw = join(outDir, "sw.js");

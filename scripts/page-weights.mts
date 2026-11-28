@@ -65,6 +65,32 @@ export function pageWeights(site: string): PageWeight[] {
   });
 }
 
+/** What the service worker keeps for the game offline (R61): its list's files, each once. */
+export interface OfflineWeight {
+  /** compressed bytes, as a server sends them: text gzip-compressed, faces and pictures as they are */
+  total: number;
+  /** bytes as the worker stores them */
+  stored: number;
+  files: number;
+}
+
+/** The weight of the worker's list (the build writes it into sw.js: vite.config.ts offlineWorker). */
+export function offlineWeight(site: string): OfflineWeight {
+  const found = /const PRECACHE = (\{.*?\});/.exec(readFileSync(join(site, "sw.js"), "utf8"));
+  if (!found?.[1]) throw new Error("sw.js carries no list of what it keeps (the build writes it in)");
+  const { files } = JSON.parse(found[1]) as { files: string[] };
+  const unique = [...new Set(files)];
+  const gone = unique.filter((f) => !existsSync(join(site, f)));
+  if (gone.length) throw new Error(`the worker's list names files the build does not have: ${gone.join(", ")}`);
+  const text = /\.(js|css|html|json|webmanifest|svg)$/;
+  const bytes = (f: string) => readFileSync(join(site, f)).length;
+  return {
+    total: unique.reduce((n, f) => n + (text.test(f) ? gz(join(site, f)) : bytes(f)), 0),
+    stored: unique.reduce((n, f) => n + bytes(f), 0),
+    files: unique.length,
+  };
+}
+
 if (process.argv[1] && import.meta.url.endsWith(process.argv[1].split("\\").join("/").split("/").pop()!)) {
   for (const w of pageWeights(process.argv[2] ?? "apps/web/dist"))
     console.log(
