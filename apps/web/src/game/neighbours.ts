@@ -6,7 +6,9 @@
 
 import { create } from "zustand";
 import {
+  CHARACTERS,
   FRIEND_BY_ID,
+  type FriendSheet,
   type Line,
   type Reward,
   type Taste,
@@ -16,8 +18,12 @@ import {
   greetingNow,
   localDay,
   meetVisitor,
+  openSteps,
+  stepsTaken,
   takeStep,
+  trustOf,
   type Unlock,
+  type WorldState,
 } from "@lingxi/world";
 import { SUB, localHour } from "@lingxi/game";
 import { questsOf } from "./quests";
@@ -39,6 +45,25 @@ export function greetingFor(id: string, fallback: readonly Line[]): Line[] {
     questReady: questsOf(id).ready.length > 0,
   });
   return greetingNow(id, view)?.lines ?? [...fallback];
+}
+
+/** Whom the player has met: the lane pets met on the lane, and the rooms they have been to (each resident's home). */
+export interface Met {
+  builders: readonly string[];
+  rooms: readonly number[];
+}
+
+/**
+ * R71: whether a step waits for the player with a neighbour: one is open, and it is someone they have met (begun a
+ * friendship with, met on the lane, or been to the room of). Every friendship's first step is open from the start,
+ * so a star on each open one stood by all fourteen on day 1, most of them in rooms not yet open to the player.
+ */
+export function stepWaiting(world: WorldState, sheet: FriendSheet, met: Met): boolean {
+  if (!openSteps(world, sheet).length) return false;
+  if (trustOf(world, sheet.id) > 0 || stepsTaken(world, sheet.id).length > 0) return true;
+  if (sheet.kind === "lane") return met.builders.includes(sheet.id);
+  const home = CHARACTERS.find((c) => c.id === sheet.id)?.room;
+  return home !== undefined && met.rooms.includes(home);
 }
 
 /** The last thing that happened with a neighbour, for a short note under their words. */

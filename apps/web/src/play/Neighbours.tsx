@@ -29,7 +29,11 @@ import {
 import { useLang } from "../i18n";
 import { play } from "../game/sound";
 import { useWorld } from "../game/world";
-import { giftNeighbour, takeNeighbourStep, useNeighbourNote } from "../game/neighbours";
+import { giftNeighbour, stepWaiting, takeNeighbourStep, useNeighbourNote } from "../game/neighbours";
+import { useBuilders } from "../game/builderScene";
+import { useBadges } from "../game/badges";
+import { now as gameNow } from "../game/gameClock";
+import { BuilderArt } from "./BuilderArt";
 import { rewardText } from "./rewardText";
 import "./neighbours.css";
 
@@ -283,6 +287,10 @@ export function NeighboursPanel() {
   const lang = useLang((s) => s.lang) as Lang;
   const zh = lang === "zh";
   const world = useWorld((s) => s.world);
+  // R71: whom the player has met, for the star: a step waits only with someone met
+  const builders = useBuilders((s) => s.met);
+  const rooms = useBadges((s) => s.ledger.rooms_seen);
+  const met = useMemo(() => ({ builders, rooms: rooms ?? [] }), [builders, rooms]);
   return (
     <section className="nb-panel">
       <h3>{zh ? "邻居" : "Neighbours"}</h3>
@@ -295,7 +303,8 @@ export function NeighboursPanel() {
         {FRIENDS.map((f) => {
           const c = CHARACTERS.find((x) => x.id === f.id);
           const nx = nextLevel(world, f);
-          const waiting = openSteps(world, f).length > 0;
+          const waiting = stepWaiting(world, f, met);
+          const lane = BUILDER_PET[f.id as BuilderId];
           return (
             <li key={f.id} className={waiting ? "waiting" : ""}>
               {c ? (
@@ -307,11 +316,12 @@ export function NeighboursPanel() {
                   alt=""
                   aria-hidden="true"
                 />
-              ) : (
+              ) : lane ? (
+                // R71: the lane pet as itself, as on its card, not a placeholder
                 <span className="nb-face nb-lane-face" aria-hidden="true">
-                  {f.id === "behemoth" ? "13" : "◆"}
+                  <BuilderArt b={lane} scale={1} ms={gameNow()} />
                 </span>
-              )}
+              ) : null}
               <div className="nb-who">
                 <b>
                   {neighbourName(f.id, lang)}

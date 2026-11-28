@@ -5,9 +5,9 @@
  * lets anyone check the step on screen against BNB Chain.
  */
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { createPublicClient, http, keccak256, parseAbi, type Hex } from "viem";
-import { type Outfit, type Palette, boundingBox, drawPet, paintOverlay, toRgba, wearOverlay } from "@lingxi/art";
+import { type Outfit, type Palette, drawPet, paintOverlay, toRgba, wearOverlay } from "@lingxi/art";
 import {
   BEHEMOTH_CIRCUIT,
   BEHEMOTH_NETLIST_KECCAK,
@@ -39,52 +39,17 @@ import { play } from "../game/sound";
 import { PALETTE_OF } from "../scene/palette";
 import { Chips } from "./parts";
 import { chipsFor } from "./ruleText";
-import { Sprite } from "./Sprite";
 import { noteEvent, noteTallies } from "../game/tally";
 import { LaneQuests } from "./Quests";
 import { LaneFriendship } from "./Neighbours";
 import { saveWrite } from "../game/saveRuntime";
 import { now as gameNow } from "../game/gameClock";
 import { PALETTES, builderOutfit, useBuilders } from "../game/builderScene";
+import { BuilderArt } from "./BuilderArt";
 import { API_BASE } from "../game/apiBase";
 
 const API = API_BASE;
 const BSC_RPC = "https://bsc-dataseed.bnbchain.org";
-
-function BuilderArt({ b, scale, ms }: { b: BuilderPet; scale: number; ms: number }) {
-  // the pieces worn change with the hour (ms); the picture is redrawn only when one does
-  const { head, face, held } = builderOutfit(b, ms);
-  const { canvas, overlay, crop } = useMemo(() => {
-    const c = drawPet(b.look.line, b.look.stage, { expression: "happy", lit: b.mind.kind === "cpu" });
-    const o = wearOverlay(
-      c,
-      b.look.line,
-      b.look.stage,
-      { ...(head ? { head } : {}), ...(face ? { face } : {}), ...(held ? { held } : {}) },
-      0,
-    );
-    const box = boundingBox(c);
-    const xs = [box.x, box.x + box.w - 1, ...o.map((p) => p[0])];
-    const ys = [box.y, box.y + box.h - 1, ...o.map((p) => p[1])];
-    const x0 = Math.max(0, Math.min(...xs) - 1);
-    const y0 = Math.max(0, Math.min(...ys) - 1);
-    return {
-      canvas: c,
-      overlay: o,
-      crop: { x: x0, y: y0, w: Math.min(c.w, Math.max(...xs) + 2) - x0, h: Math.min(c.h, Math.max(...ys) + 2) - y0 },
-    };
-  }, [b, head, face, held]);
-  return (
-    <Sprite
-      canvas={canvas}
-      palette={PALETTES[b.look.palette]}
-      scale={scale}
-      overlay={overlay}
-      crop={crop}
-      label={b.name.en}
-    />
-  );
-}
 
 /** Ticks while mounted, so the lamps follow the CPU. */
 function useNow(every: number): number {
