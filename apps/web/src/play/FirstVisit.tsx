@@ -11,6 +11,7 @@
 import { useEffect } from "react";
 import { Hatch } from "./Hatch";
 import { useHatchDraft } from "./hatchDraft";
+import { keepFocus } from "./handoverFocus";
 import { useSaveFileUi } from "./saveFileUi";
 import { type GameParts, loadGame } from "./gameParts";
 import { WARM_AFTER_MS } from "../game/warm";
@@ -23,15 +24,22 @@ export function FirstVisit({ handOver, onFail }: { handOver: (game: GameParts) =
   useEffect(() => {
     let over = false;
     let fingerDown = false;
+    // R58: a key held down is no calm moment: the swap would take the control from under it
+    let keyDown = false;
     let calmTimer: ReturnType<typeof setInterval> | null = null;
     const finish = (game: GameParts) => {
       if (over) return;
       over = true;
       stop();
+      // R58: where the keyboard is, kept for the full game's hatch screen to put back
+      keepFocus(document.querySelector(".hatch"));
       handOver(game);
     };
     const calm = () =>
-      !fingerDown && useHatchDraft.getState().cracking < 0 && !(document.activeElement instanceof HTMLInputElement);
+      !fingerDown &&
+      !keyDown &&
+      useHatchDraft.getState().cracking < 0 &&
+      !(document.activeElement instanceof HTMLInputElement);
     const load = () => {
       void loadGame().then(
         (game) => {
@@ -49,12 +57,22 @@ export function FirstVisit({ handOver, onFail }: { handOver: (game: GameParts) =
     const up = () => {
       fingerDown = false;
     };
+    const keyPressed = () => {
+      keyDown = true;
+      load();
+    };
+    // a key let go, or the window left with one down (its keyup then never comes here)
+    const keyLifted = () => {
+      keyDown = false;
+    };
     const idle = setTimeout(load, WARM_AFTER_MS);
     const unsubSheet = useSaveFileUi.subscribe((s) => s.open && load());
     window.addEventListener("pointerdown", down, true);
     window.addEventListener("pointerup", up, true);
     window.addEventListener("pointercancel", up, true);
-    window.addEventListener("keydown", load, true);
+    window.addEventListener("keydown", keyPressed, true);
+    window.addEventListener("keyup", keyLifted, true);
+    window.addEventListener("blur", keyLifted);
     function stop() {
       clearTimeout(idle);
       if (calmTimer) clearInterval(calmTimer);
@@ -62,7 +80,9 @@ export function FirstVisit({ handOver, onFail }: { handOver: (game: GameParts) =
       window.removeEventListener("pointerdown", down, true);
       window.removeEventListener("pointerup", up, true);
       window.removeEventListener("pointercancel", up, true);
-      window.removeEventListener("keydown", load, true);
+      window.removeEventListener("keydown", keyPressed, true);
+      window.removeEventListener("keyup", keyLifted, true);
+      window.removeEventListener("blur", keyLifted);
     }
     return () => {
       over = true;

@@ -6,6 +6,7 @@ import { motion, useReducedMotion } from "motion/react";
 import { SHELL, drawEgg, drawPet } from "@lingxi/art";
 import { useHoldings } from "../game/holders";
 import { markHatched } from "./afterHatch";
+import { restoreFocus } from "./handoverFocus";
 import { HolderPerkNote } from "./HolderPerk";
 
 /** The gilded shell a TapeCode Test1 holder's eggs wear. */
@@ -93,8 +94,11 @@ export function Hatch({ onHatch }: { onHatch: (line: StarterLine, name: string, 
   useEffect(() => {
     if (isCracking) stage.current?.focus({ preventScroll: true });
   }, [isCracking]);
+  // R58: drawn again by the full game after a first visit's handover, the screen puts the keyboard's place back
+  const screen = useRef<HTMLElement>(null);
+  useEffect(() => void restoreFocus(screen.current), []);
   return (
-    <main className="hatch" aria-labelledby="hatch-h">
+    <main ref={screen} className="hatch" aria-labelledby="hatch-h">
       <div className="hatch-head">
         <h1 id="hatch-h">{t("hatch.title")}</h1>
         <p>{t("hatch.sub")}</p>
