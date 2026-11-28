@@ -24,10 +24,11 @@ module.exports = {
       // 165 MB, where transpiling it through tsx took about 3 s and 390 MB, and minutes on a machine short of memory
       script: path.join(root, "services", "api", "dist", "server.mjs"),
       interpreter: "node",
-      // P10: every store a stranger can fill has a cap, sized so that all of them full stay within a 400 MB heap and a
-      // 500 MB process (scripts/memory-bound.mts measures it). V8's old space is held to 384 MB so that a heap growing
-      // past what was measured ends in an out-of-memory exit pm2 restarts at once, rather than growing until pm2's
-      // max_memory_restart notices it; that stays the ceiling for what the process holds outside the heap
+      // P10: every store a stranger can fill has a cap. Measured with all of them full and two hours of churn under this
+      // flag (scripts/memory-bound.mts, 2026-11-28): the heap and array buffers' floor 265 MB and level, V8's heap held
+      // at 371 MB, the whole process 435 to 740 MB and level (the test harness runs in it too). V8's old space is held to
+      // 384 MB so a heap growing past that ends in an out-of-memory exit pm2 restarts at once; max_memory_restart below is
+      // the ceiling for what the process holds outside the heap
       node_args: "--max-old-space-size=384",
       env: {
         PORT: "8790",
@@ -77,7 +78,9 @@ module.exports = {
         LINGXI_EXTRAS: "0x560c7dc63a45e5afe53ad156152555a5c067598d",
         LINGXI_PAPERS_STORE: path.join(root, "services", "api", "data", "adoption-papers.json"),
       },
-      max_memory_restart: "600M",
+      // above the measured worst (740 MB, every store full) with a fifth to spare: full stores never restart the server,
+      // and a real leak still does (R57; 600M was under the measured bound)
+      max_memory_restart: "900M",
       restart_delay: 3000,
     },
     {
