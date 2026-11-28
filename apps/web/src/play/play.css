@@ -45,15 +45,23 @@
   font: inherit;
   min-width: 0;
 }
+/* R75: the name keeps its letters' tails: its 1.05 line is shorter than the face's letters, and clipped to it the g and
+   the y of "Piggy Jay" lost their tails; 4 px of padding hold them, taken back by the margin, so nothing moves. A name
+   too long for its place on a phone (that one cut to "Piggy…" at 390) goes on to a second line, and only a name too
+   long for two ends in "…" */
 .who b {
-  display: block;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
   font-family: var(--round);
   font-weight: 800;
   font-size: 20px;
   line-height: 1.05;
-  white-space: nowrap;
   overflow: hidden;
-  text-overflow: ellipsis;
+  overflow-wrap: anywhere;
+  padding-block: 4px;
+  margin-block: -4px;
 }
 .who-line {
   display: block;
