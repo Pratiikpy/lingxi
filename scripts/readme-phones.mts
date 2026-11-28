@@ -163,6 +163,8 @@ async function shot(browser: Browser, s: Scene): Promise<string> {
   await ctx.addInitScript((lang) => {
     localStorage.setItem("lingxi.lang", lang);
     localStorage.setItem("lingxi.reveal.v1", "1");
+    // the Pet tab's shops and extras sit behind its More fold (H5), open as a player who has opened it once finds it
+    localStorage.setItem("lingxi.meMore.v1", "1");
   }, s.lang);
   const page = await ctx.newPage();
   const errors: string[] = [];
@@ -170,7 +172,10 @@ async function shot(browser: Browser, s: Scene): Promise<string> {
   page.on("console", (m) => m.type() === "error" && errors.push(m.text()));
   try {
     await page.goto(`${SITE}/play.html`);
-    await page.locator(".hatch").waitFor({ timeout: 60_000 });
+    // the hatch screen drawn before the game's code is inert (a player cannot type into it); the name is typed once the
+    // game has drawn its own, or it would be typed into the inert copy and lost
+    await page.locator("#root .hatch").waitFor({ timeout: 60_000 });
+    await page.waitForFunction(() => !document.querySelector("#root [data-prerender]"), undefined, { timeout: 60_000 });
     await page.fill("#pet-name", s.lang === "zh" ? "小米" : "Mochi");
     await page.click(".hatch-go");
     await page.locator(".stage").waitFor();
