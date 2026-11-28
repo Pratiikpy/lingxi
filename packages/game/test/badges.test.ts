@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { BADGES, newTiers, progressOf, record, tierOf, visitRoom, type Ledger } from "../src/index";
+import { BADGES, badgeGoal, newTiers, progressOf, record, tierOf, visitRoom, type Ledger } from "../src/index";
 
 const chef = BADGES.find((b) => b.id === "chef")!;
 const grown = BADGES.find((b) => b.id === "grown")!;
@@ -51,6 +51,27 @@ describe("care badges across every pet", () => {
     for (const b of BADGES) {
       expect(b.name.en && b.name.zh && b.how.en.includes("{n}") && b.how.zh.includes("{n}")).toBeTruthy();
       expect(b.tiers[0] < b.tiers[1] && b.tiers[1] < b.tiers[2]).toBe(true);
+    }
+  });
+
+  it("a goal of one is said in the singular in English, for every badge that counts (R65)", () => {
+    const of = (id: string) => BADGES.find((b) => b.id === id)!;
+    expect(badgeGoal(of("teacher"), 1, "en")).toBe("Teach 1 lesson");
+    expect(badgeGoal(of("giver"), 1, "en")).toBe("Send 1 gift");
+    expect(badgeGoal(of("healer"), 1, "en")).toBe("Nurse a sick pet back once");
+    expect(badgeGoal(of("party"), 1, "en")).toBe("Be on the lane for 1 hundred-day party");
+    expect(badgeGoal(of("teacher"), 8, "en")).toBe("Teach 8 lessons");
+    expect(badgeGoal(of("teacher"), 1, "zh")).toBe("教会 1 课");
+    // a stage or a season place is a word, never a count
+    expect(badgeGoal(grown, 2, "en", "a child")).toBe("Raise a pet to a child");
+    for (const b of BADGES) {
+      if (b.metric === "stage" || b.metric === "seasonPlace") continue;
+      const one = badgeGoal(b, 1, "en");
+      expect(one, b.id).not.toContain("{n}");
+      // no "1" before a plural noun: "1 lessons", "1 gifts", "1 times"
+      expect(one, b.id).not.toMatch(
+        /1 (?:[a-z-]+ )?(?:lessons|gifts|times|baths|pets|little ones|spars|places|days|parties)/,
+      );
     }
   });
 });

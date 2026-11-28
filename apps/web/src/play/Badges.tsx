@@ -2,7 +2,7 @@
 
 import { useEffect } from "react";
 import { AnimatePresence, motion } from "motion/react";
-import { BADGES, type Badge, type Metric, progressOf, tierOf } from "@lingxi/game";
+import { BADGES, type Badge, type Metric, badgeGoal, progressOf, tierOf } from "@lingxi/game";
 import { useHoldings } from "../game/holders";
 import { useLang } from "../i18n";
 import { useBadges } from "../game/badges";
@@ -39,6 +39,7 @@ const PLACE = {
   zh: ["", "进入前十", "进入前三", "拿第一"],
 } as const;
 
+/** A badge's next goal: a stage or a season place in words, any other count as the game says it (R65: one, singular). */
 function howText(b: Badge, n: number, lang: "en" | "zh"): string {
   const shown =
     b.metric === "stage"
@@ -46,7 +47,7 @@ function howText(b: Badge, n: number, lang: "en" | "zh"): string {
       : b.metric === "seasonPlace"
         ? (PLACE[lang][n] ?? String(n))
         : String(n);
-  return b.how[lang].replace("{n}", shown);
+  return badgeGoal(b, n, lang, shown);
 }
 
 export function BadgeShelf() {

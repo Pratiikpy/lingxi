@@ -62,6 +62,9 @@
   place-items: center;
   width: 38px;
   height: 38px;
+  /* R65: the two rings drawn round the medal (5 px, below) take no room of their own: the badge's title sat under
+     them by 2 px, and a Chinese title, whose glyphs fill the line to its top, was cut by the ring */
+  margin-block: 2px 6px;
   border: 2px solid #2b2140;
   border-radius: 50%;
   background: radial-gradient(circle at 35% 30%, #fff8 0 20%, transparent 21%), var(--tier);
