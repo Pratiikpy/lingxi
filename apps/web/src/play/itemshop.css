@@ -31,3 +31,11 @@
   grid-template-columns: minmax(0, 1fr) auto;
   width: 100%;
 }
+/* R66: why a keepsake's Claim waits (or that it is open), under the button it explains */
+.itemshop-card .keepsake-why {
+  line-height: 1.35;
+  text-wrap: pretty;
+}
+.itemshop-card .keepsake-why.open {
+  color: var(--ink);
+}

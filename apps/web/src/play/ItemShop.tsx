@@ -5,7 +5,7 @@
  * Cosmetic only.
  */
 
-import { useEffect, useEffectEvent, useState } from "react";
+import { useEffect, useEffectEvent, useId, useState } from "react";
 import {
   type ShopItem,
   buyShopItem,
@@ -21,12 +21,22 @@ import {
   type Deployment,
 } from "@lingxi/chain";
 import { WEARABLE } from "@lingxi/art";
-import { CHAIN_DECOR, CHAIN_WEAR, DECOR_BY_ID, GOAL_BY_ID, isChainWear } from "@lingxi/world";
+import {
+  CHAIN_DECOR,
+  CHAIN_WEAR,
+  DECOR_BY_ID,
+  type Decor,
+  GOAL_BY_ID,
+  type GoalDef,
+  goalAmountText,
+  isChainWear,
+} from "@lingxi/world";
 import { useLang, useT } from "../i18n";
 import { accountOf, connectWallet, deployment, publicClient } from "../game/chain";
 import { syncChainPieces } from "../game/chainDecor";
 import { voucherQuery, withQuery } from "../game/requests";
 import { useDesigns } from "../game/designs";
+import { useGoals } from "../game/goals";
 import { useWorld } from "../game/world";
 import { play } from "../game/sound";
 import { DecorIcon } from "./DecorBar";
@@ -310,31 +320,17 @@ export function ItemShopPanel() {
       <ul className="itemshop-grid">
         {keepsakes.map((p) => {
           const goal = p.chain?.kind === "keepsake" ? GOAL_BY_ID[p.chain.goal] : undefined;
-          const have = held.includes(p.id);
-          return (
-            <li key={p.id} className="itemshop-card">
-              <DecorIcon rows={p.rows} colors={p.colors} />
-              <b>{p.name[lang]}</b>
-              <span className="small">{goal ? L(`for “${goal.title.en}”`, `纪念「${goal.title.zh}」`) : ""}</span>
-              {have ? (
-                <span className="small fashion-have">{L("In your wallet", "在你的钱包里")}</span>
-              ) : (
-                BASE &&
-                goal && (
-                  <div className="fashion-actions">
-                    <button
-                      type="button"
-                      className="btn"
-                      disabled={busy !== null}
-                      onClick={() => void claim(p.id, goal.id)}
-                    >
-                      {busy === `claim:${p.id}` ? L("Claiming…", "领取中……") : L("Claim", "领取")}
-                    </button>
-                  </div>
-                )
-              )}
-            </li>
-          );
+          return goal ? (
+            <KeepsakeCard
+              key={p.id}
+              piece={p}
+              goal={goal}
+              have={held.includes(p.id)}
+              busy={busy}
+              canClaim={!!BASE}
+              onClaim={() => void claim(p.id, goal.id)}
+            />
+          ) : null;
         })}
       </ul>
       {wallet && <p className="small">{L(`Wallet ${short(wallet)}`, `钱包 ${short(wallet)}`)}</p>}
@@ -349,6 +345,90 @@ export function ItemShopPanel() {
         </p>
       )}
     </div>
+  );
+}
+
+/**
+ * R66: a community goal's keepsake. The server signs its voucher only for a finished goal and a wallet that helped
+ * (services/api/src/voucher.ts), so Claim waits for the goal, read from X Layer through the goals' report, and says
+ * why it waits; it never sends the player into a wallet for a claim that cannot be signed.
+ */
+export function KeepsakeCard({
+  piece,
+  goal,
+  have,
+  busy,
+  canClaim,
+  onClaim,
+}: {
+  piece: Decor;
+  goal: GoalDef;
+  /** the wallet holds one */
+  have: boolean;
+  busy: string | null;
+  /** this build has the server that signs the voucher */
+  canClaim: boolean;
+  onClaim: () => void;
+}) {
+  const lang = useLang((s) => s.lang) as Lang;
+  const L = (en: string, zh: string) => (lang === "zh" ? zh : en);
+  const report = useGoals((s) => (s.status === "ready" ? s.reports[goal.id] : undefined));
+  const why = useId();
+  const open = report?.state === "complete";
+  const reason = !report
+    ? L("Opens when everyone together finishes the goal.", "大家一起完成这个目标后才能领取。")
+    : report.state === "complete"
+      ? report.mine > 0
+        ? L(
+            "Finished, and your wallet helped: claim it once, for the network fee.",
+            "已经完成了，你的钱包出过力：领取一次，只需网络费。",
+          )
+        : L(
+            "Finished. Claim it with a wallet that helped, for the network fee.",
+            "已经完成了。用出过力的钱包领取，只需网络费。",
+          )
+      : report.state === "upcoming"
+        ? L(
+            "This goal hasn't started yet. Its keepsake opens when everyone together finishes it.",
+            "这个目标还没开始。大家一起完成后才能领取它的纪念品。",
+          )
+        : report.state === "ended"
+          ? L(
+              "This goal ended before it was finished, so its keepsake can't be claimed.",
+              "这个目标没完成就结束了，所以它的纪念品领不了。",
+            )
+          : L(
+              `Opens when everyone together finishes the goal: ${goalAmountText(goal, report.total)} of ${goalAmountText(goal, goal.target)} ${goal.unit.en} so far.`,
+              `大家一起完成这个目标后才能领取：目前 ${goalAmountText(goal, report.total)}/${goalAmountText(goal, goal.target)} ${goal.unit.zh}。`,
+            );
+  return (
+    <li className="itemshop-card">
+      <DecorIcon rows={piece.rows} colors={piece.colors} />
+      <b>{piece.name[lang]}</b>
+      <span className="small">{L(`for “${goal.title.en}”`, `纪念「${goal.title.zh}」`)}</span>
+      {have ? (
+        <span className="small fashion-have">{L("In your wallet", "在你的钱包里")}</span>
+      ) : (
+        canClaim && (
+          <>
+            <div className="fashion-actions">
+              <button
+                type="button"
+                className="btn"
+                disabled={!open || busy !== null}
+                aria-describedby={why}
+                onClick={() => open && onClaim()}
+              >
+                {busy === `claim:${piece.id}` ? L("Claiming…", "领取中……") : L("Claim", "领取")}
+              </button>
+            </div>
+            <span className={`small keepsake-why${open ? " open" : ""}`} id={why}>
+              {reason}
+            </span>
+          </>
+        )
+      )}
+    </li>
   );
 }
 
