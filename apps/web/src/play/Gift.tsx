@@ -264,10 +264,10 @@ export function GiftArrival() {
   if (!state) return null;
   if ("error" in state) {
     return (
-      <div className="fam-modal" role="dialog">
+      <div className="fam-modal" role="dialog" aria-modal="true">
         <div className="fam-card">
           <p>{lang === "zh" ? "这份礼物的链接坏了，打不开。" : "This gift's link is damaged and can't be opened."}</p>
-          <button type="button" className="btn" onClick={close}>
+          <button type="button" className="btn" data-dismiss onClick={close}>
             {lang === "zh" ? "好的" : "OK"}
           </button>
         </div>
@@ -312,7 +312,12 @@ export function GiftArrival() {
   };
 
   return (
-    <div className="fam-modal gift-modal" role="dialog" aria-label={lang === "zh" ? "一份礼物" : "A gift"}>
+    <div
+      className="fam-modal gift-modal"
+      role="dialog"
+      aria-modal="true"
+      aria-label={lang === "zh" ? "一份礼物" : "A gift"}
+    >
       <motion.div
         className="fam-card gift-card"
         initial={{ opacity: 0, y: 12 }}
@@ -374,7 +379,12 @@ export function GiftArrival() {
                   {lang === "zh" ? "这份礼物在这台设备上已经拆过了。" : "This gift was already opened on this device."}
                 </p>
               )}
-              <button type="button" className="btn primary" onClick={seen ? close : unwrap}>
+              <button
+                type="button"
+                className="btn primary"
+                data-dismiss={seen || undefined}
+                onClick={seen ? close : unwrap}
+              >
                 {seen ? (lang === "zh" ? "好的" : "OK") : lang === "zh" ? "拆开" : "Open it"}
               </button>
             </motion.div>

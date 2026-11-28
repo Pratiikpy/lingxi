@@ -451,7 +451,12 @@ export function PacketArrival() {
   const expired = view ? (chainNow ?? Math.floor(now() / 1000)) >= view.expiry : false;
 
   return (
-    <div className="fam-modal rp-modal" role="dialog" aria-label={lang === "zh" ? "红包" : "Red packet"}>
+    <div
+      className="fam-modal rp-modal"
+      role="dialog"
+      aria-modal="true"
+      aria-label={lang === "zh" ? "红包" : "Red packet"}
+    >
       <motion.div className="fam-card rp-card" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}>
         {link && (
           <>
@@ -611,7 +616,7 @@ export function PacketArrival() {
           <ClaimsNote read={read} closedLongAgo={view.expiry + 3_600 + 30 * 86_400 < now() / 1000} lang={lang} />
         )}
         {!link && reason && <p>{text(reason)}</p>}
-        <button type="button" className="btn" onClick={close}>
+        <button type="button" className="btn" data-dismiss onClick={close}>
           {lang === "zh" ? "关闭" : "Close"}
         </button>
       </motion.div>

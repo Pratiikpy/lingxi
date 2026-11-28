@@ -418,7 +418,12 @@ export function FarewellNote() {
   const f = notes[0];
   if (!f) return null;
   return (
-    <div className="fam-modal" role="dialog" aria-label={lang === "zh" ? "去了新家" : "Gone to a new home"}>
+    <div
+      className="fam-modal"
+      role="dialog"
+      aria-modal="true"
+      aria-label={lang === "zh" ? "去了新家" : "Gone to a new home"}
+    >
       <div className="fam-card">
         <h3>{lang === "zh" ? `${f.name}去了新家` : `${f.name} has a new home`}</h3>
         <p>
@@ -426,7 +431,12 @@ export function FarewellNote() {
             ? `${f.name}（宠物 #${f.petId}）在领养中心被 ${short(f.to)} 领养了。它带着自己的全部记忆去了新家，你的那份收入已经在钱包里。`
             : `${f.name} (pet #${f.petId}) was adopted at the centre by ${short(f.to)}. It took all its memories with it, and your share is already in your wallet.`}
         </p>
-        <button type="button" className="btn primary" onClick={() => (play("tap"), setNotes((n) => n.slice(1)))}>
+        <button
+          type="button"
+          className="btn primary"
+          data-dismiss
+          onClick={() => (play("tap"), setNotes((n) => n.slice(1)))}
+        >
           {lang === "zh" ? "好的" : "OK"}
         </button>
       </div>

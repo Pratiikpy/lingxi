@@ -88,7 +88,12 @@ export function ProposalDialog({ pet }: { pet: Pet }) {
   const check = partner?.at === proposal.at ? partner.check : null;
   const onChain = claimsChain && check === "ok";
   return (
-    <div className="fam-modal" role="dialog" aria-label={lang === "zh" ? "家人请求" : "Family request"}>
+    <div
+      className="fam-modal"
+      role="dialog"
+      aria-modal="true"
+      aria-label={lang === "zh" ? "家人请求" : "Family request"}
+    >
       <motion.div
         className="fam-card"
         initial={{ opacity: 0, scale: 0.96 }}
@@ -223,7 +228,12 @@ export function NewbornDialog({ pet }: { pet: Pet }) {
   if (!answer) return null;
   if (unsaved) {
     return (
-      <div className="fam-modal" role="dialog" aria-label={lang === "zh" ? "新生的小宝宝" : "A newborn"}>
+      <div
+        className="fam-modal"
+        role="dialog"
+        aria-modal="true"
+        aria-label={lang === "zh" ? "新生的小宝宝" : "A newborn"}
+      >
         <div className="fam-card">
           <h3>{lang === "zh" ? `${unsaved}在 X Layer 上出生了` : `${unsaved} was born on X Layer`}</h3>
           <p className="small fam-unsaved">
@@ -234,6 +244,7 @@ export function NewbornDialog({ pet }: { pet: Pet }) {
           <button
             type="button"
             className="btn primary"
+            data-dismiss
             onClick={() => {
               setUnsaved(null);
               clear();
@@ -247,10 +258,10 @@ export function NewbornDialog({ pet }: { pet: Pet }) {
   }
   if (!answer.yes || !family) {
     return (
-      <div className="fam-modal" role="dialog">
+      <div className="fam-modal" role="dialog" aria-modal="true">
         <div className="fam-card">
           <p>{noFamilyText(answer, partnerIsChild, lang)}</p>
-          <button type="button" className="btn" onClick={clear}>
+          <button type="button" className="btn" data-dismiss onClick={clear}>
             {lang === "zh" ? "好的" : "OK"}
           </button>
         </div>
@@ -293,7 +304,12 @@ export function NewbornDialog({ pet }: { pet: Pet }) {
   };
   const chainError = hatching !== "idle" && hatching !== "busy" ? hatching : null;
   return (
-    <div className="fam-modal" role="dialog" aria-label={lang === "zh" ? "新生的小宝宝" : "A newborn"}>
+    <div
+      className="fam-modal"
+      role="dialog"
+      aria-modal="true"
+      aria-label={lang === "zh" ? "新生的小宝宝" : "A newborn"}
+    >
       <motion.div
         className="fam-card"
         initial={{ opacity: 0, y: 12 }}

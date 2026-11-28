@@ -393,7 +393,13 @@ export function HandheldReturn() {
   }, []);
   if (!result && arriving)
     return (
-      <div className="fam-modal" role="dialog" aria-label={L("On its way home", "正在回家的路上")} aria-busy="true">
+      <div
+        className="fam-modal"
+        role="dialog"
+        aria-modal="true"
+        aria-label={L("On its way home", "正在回家的路上")}
+        aria-busy="true"
+      >
         <div className="fam-card">
           <p className="label">{L("On its way home", "正在回家的路上")}</p>
           <p aria-live="polite">
@@ -416,7 +422,7 @@ export function HandheldReturn() {
         ? `${Math.round(m / 6) / 10} 小时`
         : `${Math.round(m / 6) / 10} hours`;
   return (
-    <div className="fam-modal" role="dialog" aria-label={L("Home from the handheld", "从掌机回来了")}>
+    <div className="fam-modal" role="dialog" aria-modal="true" aria-label={L("Home from the handheld", "从掌机回来了")}>
       <div className="fam-card">
         {result.ok ? (
           <>
@@ -434,7 +440,7 @@ export function HandheldReturn() {
             <p>{HOME_REFUSAL[result.reason][lang === "zh" ? 1 : 0]}</p>
           </>
         )}
-        <button type="button" className="btn primary" onClick={() => (play("tap"), setResult(null))}>
+        <button type="button" className="btn primary" data-dismiss onClick={() => (play("tap"), setResult(null))}>
           {L("OK", "好")}
         </button>
       </div>
