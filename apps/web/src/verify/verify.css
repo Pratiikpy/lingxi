@@ -31,7 +31,8 @@
   flex-wrap: wrap;
 }
 .v-form label {
-  font-family: var(--display);
+  font-family: var(--label);
+  font-weight: 700;
   font-size: 13px;
   letter-spacing: 0.12em;
   text-transform: uppercase;
@@ -92,7 +93,8 @@
   gap: 8px 16px;
 }
 .v-card dt {
-  font-family: var(--display);
+  font-family: var(--label);
+  font-weight: 700;
   font-size: 12.5px;
   letter-spacing: 0.08em;
   text-transform: uppercase;

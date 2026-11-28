@@ -46,6 +46,10 @@
 
   --display: "Pixelify Sans Variable", "Baloo 2 Variable", ui-rounded, system-ui, sans-serif;
   --round: "Baloo 2 Variable", "Noto Sans SC", "PingFang SC", "Microsoft YaHei", ui-rounded, system-ui, sans-serif;
+  /* R63: the pixel face (--display) is for text of 20px and above. Its letters sit on a grid of tenths of the font size,
+     and a C differs from an O, a G from a B, by one square of it: below 20px that square blurs shut ("BRAIN OIROUIT",
+     "Bift giver"). A label smaller than that is set in this face, bold (scripts/pixelFace.test.mts holds the line) */
+  --label: var(--round);
   --body: "Noto Sans SC", "PingFang SC", "Microsoft YaHei", system-ui, -apple-system, "Segoe UI", sans-serif;
   /* code: real monospace faces first, so a Chinese page never hands code to a CJK serif (A99) */
   --mono:
