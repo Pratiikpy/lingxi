@@ -28,17 +28,19 @@ const cat = JSON.parse(readFileSync(join(root, "apps/web/public/circuits.json"),
   brainPins: unknown;
   rules: Array<{
     name: string;
+    nameZh: string;
     id: string;
     nIn: number;
     inBits: number;
     netlistKeccak: string;
-    fields: unknown;
+    fields: { inputs: Array<{ name: string; nameZh: string }>; outputs: Array<{ name: string; nameZh: string }> };
     vectors: Array<[number, number]>;
   }>;
   brains: Array<{
     line: "gentle" | "bold" | "curious";
     id: string;
     nState: number;
+    memory: Array<{ name: string; nameZh: string; labelZh: string }>;
     netlistKeccak: string;
     vectors: Array<{ input: number; output: number; nextState: number }>;
     walk: Array<{ state: number; input: number; output: number; nextState: number }>;
@@ -65,6 +67,22 @@ describe("the circuit catalogue (H6)", () => {
       expect(p.valuesZh.length, p.name).toBe(p.values.length);
       for (const v of p.valuesZh) expect(v, p.name).toMatch(/[一-鿿]/);
     }
+  });
+
+  it("names every rule, its fields and each brain's memory in Chinese too, so the page in Chinese reads in Chinese (R75)", () => {
+    const cjk = /[一-鿿]/;
+    for (const r of cat.rules) {
+      expect(r.nameZh, r.name).toMatch(cjk);
+      for (const f of [...r.fields.inputs, ...r.fields.outputs]) expect(f.nameZh, `${r.name} ${f.name}`).toMatch(cjk);
+    }
+    // a resident's and a builder pet's rule carries the name the game gives them in Chinese
+    expect(cat.rules.find((r) => r.name === "folk:wick")?.nameZh).toBe("居民问候 · 灯芯");
+    expect(cat.rules.find((r) => r.name === "builder:behemoth")?.nameZh).toBe("建造者宠物 · 巨兽");
+    for (const b of cat.brains)
+      for (const m of b.memory) {
+        expect(m.nameZh, `${b.line} ${m.name}`).toMatch(cjk);
+        expect(m.labelZh, `${b.line} ${m.name}`).toMatch(cjk);
+      }
   });
 
   it("lists every rule circuit with its id, its netlist's hash and the reference's answers", () => {
@@ -96,7 +114,12 @@ describe("the circuit catalogue (H6)", () => {
       // every answer the rule gives lives in its declared answer bits
       const used = out.bits.reduce((m, b) => m | (1 << b), 0);
       for (let w = 0; w < 2 ** rule.inBits; w++) expect(rule.reference(w) & ~used, `${rule.name} ${w}`).toBe(0);
-      expect(cat.rules.find((r) => r.name === rule.name)?.fields).toEqual(JSON.parse(JSON.stringify(rule.fields)));
+      // the rule's own fields, each with its name in Chinese beside (R75)
+      const listed = cat.rules.find((r) => r.name === rule.name)?.fields;
+      const strip = (l: Array<{ nameZh: string }> = []) => l.map(({ nameZh: _zh, ...f }) => f);
+      expect({ inputs: strip(listed?.inputs), outputs: strip(listed?.outputs) }).toEqual(
+        JSON.parse(JSON.stringify(rule.fields)),
+      );
     }
   });
 

@@ -17,7 +17,7 @@ const word = (n: number) => n.toString(16).padStart(64, "0");
 /** an ABI answer holding one or two `bytes` of one zero byte each */
 const answer = "0x" + word(64) + word(128) + word(1) + "00".padEnd(64, "0") + word(1) + "00".padEnd(64, "0");
 
-function load(): { refused: number } {
+function load(language = "en"): { refused: number } {
   const seen = { refused: 0 };
   let inFlight = 0;
   const fakeFetch = async (url: string, init?: { body?: string }) => {
@@ -39,7 +39,7 @@ function load(): { refused: number } {
     .replace(/<script>[\s\S]*<\/script>/, "")
     .replace(/<link[^>]*rel="stylesheet"[^>]*>/g, "");
   const code = html.match(/<script>([\s\S]*)<\/script>/)![1]!;
-  new Function("fetch", "document", "navigator", code)(fakeFetch, document, { language: "en" });
+  new Function("fetch", "document", "navigator", code)(fakeFetch, document, { language });
   return seen;
 }
 
@@ -74,5 +74,42 @@ describe("the circuit cards' fold-out shows that it opens (R68)", () => {
       .map((m) => ({ selector: m[1]!.trim(), display: /(?:^|;)\s*display\s*:\s*([^;]+)/.exec(m[2]!)?.[1]?.trim() }));
     expect(summaries.length, "the page styles its summaries").toBeGreaterThan(0);
     expect(summaries.filter((s) => s.display && s.display !== "list-item")).toEqual([]);
+  });
+});
+
+describe("the circuits page in Chinese reads in Chinese (R75)", () => {
+  /** Waits for the page's catalogue, presses a card's run, and gives the card's answer once it has come. */
+  async function run(card: Element): Promise<string> {
+    const out = card.querySelector("p[aria-live]");
+    card.querySelector<HTMLButtonElement>("button.cx-run")?.click();
+    for (let waited = 0; /^…?$/.test(out?.textContent ?? "") && waited < 10_000; waited += 20)
+      await new Promise((r) => setTimeout(r, 20));
+    return out?.textContent ?? "";
+  }
+
+  it("a rule's name, its fields and its run's answer are in Chinese, as are a brain's memory and the chain", async () => {
+    load("zh-CN");
+    for (let waited = 0; !document.querySelector("#rules .card") && waited < 10_000; waited += 20)
+      await new Promise((r) => setTimeout(r, 20));
+    const drop = document.querySelector("#rule-drop")!;
+    expect(drop.querySelector("h3")?.textContent).toBe("找东西（drop）· 电路 #7");
+    const fields = Array.from(drop.querySelectorAll("table td:first-child"), (td) => td.textContent);
+    expect(fields).toContain("稀有度（tier）");
+    const answer = await run(drop);
+    expect(answer).toMatch(
+      /输入 1（稀有度 1 · 房间相合 0） → X Layer 的答案 0（权重指数 0 · 有权重 0 · 稀有 0 · 熟悉度 0）/,
+    );
+    expect(answer).not.toMatch(/tier|home|exponent|weighted|rare|familiarity/);
+    expect(document.getElementById("rule-folk:wick")?.querySelector("h3")?.textContent).toMatch(
+      /^居民问候 · 灯芯（folk:wick）/,
+    );
+    const brain = document.querySelector("#brains .card")!;
+    expect(brain.textContent).toMatch(/记忆 8 位（信任 0-2，喜欢玩具 3，还在害怕 4，醒了 5-7）/);
+    expect(await run(brain)).toMatch(/下一刻的记忆 0（信任 0 · 喜欢玩具 0 · 还在害怕 0 · 醒了 0）/);
+    expect(document.querySelector("#proc")?.textContent).toMatch(/· 链 196$/);
+    const trust = await run(document.querySelector("#rule-trust")!);
+    expect(trust).toMatch(
+      /^输入 \d+（信任点数 \d+ · 口味 \d · 今天已算过 \d） → X Layer 的答案 0（信任等级 0 · 加的点数 0 · 被拒收 0）/,
+    );
   });
 });

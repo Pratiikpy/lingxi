@@ -261,6 +261,7 @@
  "rules": [
   {
    "name": "drop",
+   "nameZh": "找东西",
    "about": {
     "en": "How much each rarity tier weighs in a find, which tiers are rare, and how much a look around makes a place familiar.",
     "zh": "每个稀有度在寻找时的权重、哪些算稀有，以及四处找找让一个地方熟悉多少。"
@@ -282,7 +283,8 @@
       "meaning": {
        "en": "rarity tier: 1 rarest … 15 most common; 0 means no tier",
        "zh": "稀有度：1 最稀有 … 15 最常见；0 表示没有稀有度"
-      }
+      },
+      "nameZh": "稀有度"
      },
      {
       "name": "home",
@@ -291,7 +293,8 @@
       "meaning": {
        "en": "1 when the room's kind matches the pet",
        "zh": "房间的类型和宠物相合时为 1"
-      }
+      },
+      "nameZh": "房间相合"
      }
     ],
     "outputs": [
@@ -302,7 +305,8 @@
       "meaning": {
        "en": "weight exponent: a find of tier t weighs 2^(t-1)",
        "zh": "权重指数：稀有度 t 的东西权重为 2^(t-1)"
-      }
+      },
+      "nameZh": "权重指数"
      },
      {
       "name": "weighted",
@@ -311,7 +315,8 @@
       "meaning": {
        "en": "1 when the tier has a weight",
        "zh": "这个稀有度有权重时为 1"
-      }
+      },
+      "nameZh": "有权重"
      },
      {
       "name": "rare",
@@ -320,7 +325,8 @@
       "meaning": {
        "en": "1 for a rare tier (1 to 4)",
        "zh": "稀有（1 到 4）时为 1"
-      }
+      },
+      "nameZh": "稀有"
      },
      {
       "name": "familiarity",
@@ -329,7 +335,8 @@
       "meaning": {
        "en": "familiarity a look around adds: 2 where the pet is at home, else 1",
        "zh": "四处找找增加的熟悉度：在宠物合适的房间为 2，否则为 1"
-      }
+      },
+      "nameZh": "熟悉度"
      }
     ]
    },
@@ -466,6 +473,7 @@
   },
   {
    "name": "trust",
+   "nameZh": "信任",
    "about": {
     "en": "A resident's trust level from trust points, and how many points a gift adds (only the first gift of a day counts; a disliked one is refused).",
     "zh": "由信任点数得出居民的信任等级，以及一份礼物加多少点（每天只算第一份；不喜欢的会被拒收）。"
@@ -487,7 +495,8 @@
       "meaning": {
        "en": "trust points (127 and over read as 127)",
        "zh": "信任点数（127 及以上按 127 算）"
-      }
+      },
+      "nameZh": "信任点数"
      },
      {
       "name": "taste",
@@ -496,7 +505,8 @@
       "meaning": {
        "en": "the gift's taste: 0 loved, 1 liked, 2 neutral, 3 disliked",
        "zh": "礼物合不合口味：0 最爱，1 喜欢，2 一般，3 不喜欢"
-      }
+      },
+      "nameZh": "口味"
      },
      {
       "name": "counted",
@@ -505,7 +515,8 @@
       "meaning": {
        "en": "1 when a gift was already counted today",
        "zh": "今天已经算过一份礼物时为 1"
-      }
+      },
+      "nameZh": "今天已算过"
      }
     ],
     "outputs": [
@@ -516,7 +527,8 @@
       "meaning": {
        "en": "trust level 0 to 5 (from 0, 5, 15, 30, 50, 80 points)",
        "zh": "信任等级 0 到 5（从 0、5、15、30、50、80 点起）"
-      }
+      },
+      "nameZh": "信任等级"
      },
      {
       "name": "gain",
@@ -525,7 +537,8 @@
       "meaning": {
        "en": "points the gift adds: 4 loved, 2 liked, 1 neutral; 0 when refused or already counted today",
        "zh": "这份礼物加的点数：最爱 4，喜欢 2，一般 1；被拒收或今天已算过时为 0"
-      }
+      },
+      "nameZh": "加的点数"
      },
      {
       "name": "refused",
@@ -534,7 +547,8 @@
       "meaning": {
        "en": "1 when the gift is refused",
        "zh": "礼物被拒收时为 1"
-      }
+      },
+      "nameZh": "被拒收"
      }
     ]
    },
@@ -927,6 +941,7 @@
   },
   {
    "name": "skills",
+   "nameZh": "技能树",
    "about": {
     "en": "Which tier of a skill tree is open for the points held in it, and how many points each tier needs.",
     "zh": "技能树里，按已投入的点数哪一层开放，以及每层需要多少点。"
@@ -948,7 +963,8 @@
       "meaning": {
        "en": "points held in the tree (0 to 63; a full tree holds 62)",
        "zh": "这棵树里已投入的点数（0 到 63；满树 62）"
-      }
+      },
+      "nameZh": "已投入点数"
      },
      {
       "name": "tier",
@@ -957,7 +973,8 @@
       "meaning": {
        "en": "the tier asked about: 1 to 6 (0 and 7 are no tier)",
        "zh": "问的是第几层：1 到 6（0 和 7 不是层）"
-      }
+      },
+      "nameZh": "层"
      }
     ],
     "outputs": [
@@ -968,7 +985,8 @@
       "meaning": {
        "en": "1 when the tier is open",
        "zh": "这一层已开放时为 1"
-      }
+      },
+      "nameZh": "已开放"
      },
      {
       "name": "needs",
@@ -977,7 +995,8 @@
       "meaning": {
        "en": "points the tier needs: tier 1 0, tier 2 5, tier 3 15, tier 4 25, tier 5 40, tier 6 55 (63 for no tier)",
        "zh": "这一层需要的点数：第 1 层 0，第 2 层 5，第 3 层 15，第 4 层 25，第 5 层 40，第 6 层 55（不是层时为 63）"
-      }
+      },
+      "nameZh": "需要的点数"
      }
     ]
    },
@@ -1370,6 +1389,7 @@
   },
   {
    "name": "folk:wick",
+   "nameZh": "居民问候 · 灯芯",
    "about": {
     "en": "How this resident greets you: their mood and which line they choose, from the time, trust, today's gift, your pet and their quests.",
     "zh": "这位居民怎样跟你打招呼：心情和说哪句话，取决于时间、信任、今天的礼物、你的宠物和他们的任务。"
@@ -1391,7 +1411,8 @@
       "meaning": {
        "en": "time of day: 0 night, 1 morning, 2 day, 3 evening",
        "zh": "一天中的时间：0 夜里，1 早上，2 白天，3 傍晚"
-      }
+      },
+      "nameZh": "时间"
      },
      {
       "name": "trust",
@@ -1400,7 +1421,8 @@
       "meaning": {
        "en": "trust level with this resident (0 to 5)",
        "zh": "和这位居民的信任等级（0 到 5）"
-      }
+      },
+      "nameZh": "信任等级"
      },
      {
       "name": "gift",
@@ -1409,7 +1431,8 @@
       "meaning": {
        "en": "today's gift to them: 0 none, 1 loved or liked, 2 accepted politely, 3 refused",
        "zh": "今天送他们的礼物：0 没送，1 最爱或喜欢，2 礼貌收下，3 被拒收"
-      }
+      },
+      "nameZh": "今天的礼物"
      },
      {
       "name": "petHappy",
@@ -1418,7 +1441,8 @@
       "meaning": {
        "en": "1 when the pet is happy (joy at 600 or more)",
        "zh": "宠物开心（心情 600 及以上）时为 1"
-      }
+      },
+      "nameZh": "宠物开心"
      },
      {
       "name": "petHungry",
@@ -1427,7 +1451,8 @@
       "meaning": {
        "en": "1 when the pet is hungry (food under 300)",
        "zh": "宠物饿了（饱腹 300 以下）时为 1"
-      }
+      },
+      "nameZh": "宠物饿了"
      },
      {
       "name": "questReady",
@@ -1436,7 +1461,8 @@
       "meaning": {
        "en": "1 when a quest of theirs is ready to hand in",
        "zh": "他们的任务可以交时为 1"
-      }
+      },
+      "nameZh": "任务可交"
      }
     ],
     "outputs": [
@@ -1447,7 +1473,8 @@
       "meaning": {
        "en": "mood: 0 low, 1 calm, 2 glad, 3 delighted",
        "zh": "心情：0 低落，1 平静，2 高兴，3 很开心"
-      }
+      },
+      "nameZh": "心情"
      },
      {
       "name": "line",
@@ -1456,7 +1483,8 @@
       "meaning": {
        "en": "which line: 0 their usual hello, 1 morning, 2 evening or night, 3 thanks for today's gift, 4 after a refused gift, 5 an old friend, 6 the pet looks hungry, 7 something is ready for them",
        "zh": "说哪句话：0 平常的招呼，1 早上，2 傍晚或夜里，3 谢谢今天的礼物，4 礼物被拒之后，5 老朋友，6 宠物看起来饿了，7 有东西可以交给他们"
-      }
+      },
+      "nameZh": "说哪句"
      }
     ]
    },
@@ -1849,6 +1877,7 @@
   },
   {
    "name": "folk:praline",
+   "nameZh": "居民问候 · 糖霜",
    "about": {
     "en": "How this resident greets you: their mood and which line they choose, from the time, trust, today's gift, your pet and their quests.",
     "zh": "这位居民怎样跟你打招呼：心情和说哪句话，取决于时间、信任、今天的礼物、你的宠物和他们的任务。"
@@ -1870,7 +1899,8 @@
       "meaning": {
        "en": "time of day: 0 night, 1 morning, 2 day, 3 evening",
        "zh": "一天中的时间：0 夜里，1 早上，2 白天，3 傍晚"
-      }
+      },
+      "nameZh": "时间"
      },
      {
       "name": "trust",
@@ -1879,7 +1909,8 @@
       "meaning": {
        "en": "trust level with this resident (0 to 5)",
        "zh": "和这位居民的信任等级（0 到 5）"
-      }
+      },
+      "nameZh": "信任等级"
      },
      {
       "name": "gift",
@@ -1888,7 +1919,8 @@
       "meaning": {
        "en": "today's gift to them: 0 none, 1 loved or liked, 2 accepted politely, 3 refused",
        "zh": "今天送他们的礼物：0 没送，1 最爱或喜欢，2 礼貌收下，3 被拒收"
-      }
+      },
+      "nameZh": "今天的礼物"
      },
      {
       "name": "petHappy",
@@ -1897,7 +1929,8 @@
       "meaning": {
        "en": "1 when the pet is happy (joy at 600 or more)",
        "zh": "宠物开心（心情 600 及以上）时为 1"
-      }
+      },
+      "nameZh": "宠物开心"
      },
      {
       "name": "petHungry",
@@ -1906,7 +1939,8 @@
       "meaning": {
        "en": "1 when the pet is hungry (food under 300)",
        "zh": "宠物饿了（饱腹 300 以下）时为 1"
-      }
+      },
+      "nameZh": "宠物饿了"
      },
      {
       "name": "questReady",
@@ -1915,7 +1949,8 @@
       "meaning": {
        "en": "1 when a quest of theirs is ready to hand in",
        "zh": "他们的任务可以交时为 1"
-      }
+      },
+      "nameZh": "任务可交"
      }
     ],
     "outputs": [
@@ -1926,7 +1961,8 @@
       "meaning": {
        "en": "mood: 0 low, 1 calm, 2 glad, 3 delighted",
        "zh": "心情：0 低落，1 平静，2 高兴，3 很开心"
-      }
+      },
+      "nameZh": "心情"
      },
      {
       "name": "line",
@@ -1935,7 +1971,8 @@
       "meaning": {
        "en": "which line: 0 their usual hello, 1 morning, 2 evening or night, 3 thanks for today's gift, 4 after a refused gift, 5 an old friend, 6 the pet looks hungry, 7 something is ready for them",
        "zh": "说哪句话：0 平常的招呼，1 早上，2 傍晚或夜里，3 谢谢今天的礼物，4 礼物被拒之后，5 老朋友，6 宠物看起来饿了，7 有东西可以交给他们"
-      }
+      },
+      "nameZh": "说哪句"
      }
     ]
    },
@@ -2328,6 +2365,7 @@
   },
   {
    "name": "folk:yonder",
+   "nameZh": "居民问候 · 阿远",
    "about": {
     "en": "How this resident greets you: their mood and which line they choose, from the time, trust, today's gift, your pet and their quests.",
     "zh": "这位居民怎样跟你打招呼：心情和说哪句话，取决于时间、信任、今天的礼物、你的宠物和他们的任务。"
@@ -2349,7 +2387,8 @@
       "meaning": {
        "en": "time of day: 0 night, 1 morning, 2 day, 3 evening",
        "zh": "一天中的时间：0 夜里，1 早上，2 白天，3 傍晚"
-      }
+      },
+      "nameZh": "时间"
      },
      {
       "name": "trust",
@@ -2358,7 +2397,8 @@
       "meaning": {
        "en": "trust level with this resident (0 to 5)",
        "zh": "和这位居民的信任等级（0 到 5）"
-      }
+      },
+      "nameZh": "信任等级"
      },
      {
       "name": "gift",
@@ -2367,7 +2407,8 @@
       "meaning": {
        "en": "today's gift to them: 0 none, 1 loved or liked, 2 accepted politely, 3 refused",
        "zh": "今天送他们的礼物：0 没送，1 最爱或喜欢，2 礼貌收下，3 被拒收"
-      }
+      },
+      "nameZh": "今天的礼物"
      },
      {
       "name": "petHappy",
@@ -2376,7 +2417,8 @@
       "meaning": {
        "en": "1 when the pet is happy (joy at 600 or more)",
        "zh": "宠物开心（心情 600 及以上）时为 1"
-      }
+      },
+      "nameZh": "宠物开心"
      },
      {
       "name": "petHungry",
@@ -2385,7 +2427,8 @@
       "meaning": {
        "en": "1 when the pet is hungry (food under 300)",
        "zh": "宠物饿了（饱腹 300 以下）时为 1"
-      }
+      },
+      "nameZh": "宠物饿了"
      },
      {
       "name": "questReady",
@@ -2394,7 +2437,8 @@
       "meaning": {
        "en": "1 when a quest of theirs is ready to hand in",
        "zh": "他们的任务可以交时为 1"
-      }
+      },
+      "nameZh": "任务可交"
      }
     ],
     "outputs": [
@@ -2405,7 +2449,8 @@
       "meaning": {
        "en": "mood: 0 low, 1 calm, 2 glad, 3 delighted",
        "zh": "心情：0 低落，1 平静，2 高兴，3 很开心"
-      }
+      },
+      "nameZh": "心情"
      },
      {
       "name": "line",
@@ -2414,7 +2459,8 @@
       "meaning": {
        "en": "which line: 0 their usual hello, 1 morning, 2 evening or night, 3 thanks for today's gift, 4 after a refused gift, 5 an old friend, 6 the pet looks hungry, 7 something is ready for them",
        "zh": "说哪句话：0 平常的招呼，1 早上，2 傍晚或夜里，3 谢谢今天的礼物，4 礼物被拒之后，5 老朋友，6 宠物看起来饿了，7 有东西可以交给他们"
-      }
+      },
+      "nameZh": "说哪句"
      }
     ]
    },
@@ -2807,6 +2853,7 @@
   },
   {
    "name": "folk:twain",
+   "nameZh": "居民问候 · 双生者",
    "about": {
     "en": "How this resident greets you: their mood and which line they choose, from the time, trust, today's gift, your pet and their quests.",
     "zh": "这位居民怎样跟你打招呼：心情和说哪句话，取决于时间、信任、今天的礼物、你的宠物和他们的任务。"
@@ -2828,7 +2875,8 @@
       "meaning": {
        "en": "time of day: 0 night, 1 morning, 2 day, 3 evening",
        "zh": "一天中的时间：0 夜里，1 早上，2 白天，3 傍晚"
-      }
+      },
+      "nameZh": "时间"
      },
      {
       "name": "trust",
@@ -2837,7 +2885,8 @@
       "meaning": {
        "en": "trust level with this resident (0 to 5)",
        "zh": "和这位居民的信任等级（0 到 5）"
-      }
+      },
+      "nameZh": "信任等级"
      },
      {
       "name": "gift",
@@ -2846,7 +2895,8 @@
       "meaning": {
        "en": "today's gift to them: 0 none, 1 loved or liked, 2 accepted politely, 3 refused",
        "zh": "今天送他们的礼物：0 没送，1 最爱或喜欢，2 礼貌收下，3 被拒收"
-      }
+      },
+      "nameZh": "今天的礼物"
      },
      {
       "name": "petHappy",
@@ -2855,7 +2905,8 @@
       "meaning": {
        "en": "1 when the pet is happy (joy at 600 or more)",
        "zh": "宠物开心（心情 600 及以上）时为 1"
-      }
+      },
+      "nameZh": "宠物开心"
      },
      {
       "name": "petHungry",
@@ -2864,7 +2915,8 @@
       "meaning": {
        "en": "1 when the pet is hungry (food under 300)",
        "zh": "宠物饿了（饱腹 300 以下）时为 1"
-      }
+      },
+      "nameZh": "宠物饿了"
      },
      {
       "name": "questReady",
@@ -2873,7 +2925,8 @@
       "meaning": {
        "en": "1 when a quest of theirs is ready to hand in",
        "zh": "他们的任务可以交时为 1"
-      }
+      },
+      "nameZh": "任务可交"
      }
     ],
     "outputs": [
@@ -2884,7 +2937,8 @@
       "meaning": {
        "en": "mood: 0 low, 1 calm, 2 glad, 3 delighted",
        "zh": "心情：0 低落，1 平静，2 高兴，3 很开心"
-      }
+      },
+      "nameZh": "心情"
      },
      {
       "name": "line",
@@ -2893,7 +2947,8 @@
       "meaning": {
        "en": "which line: 0 their usual hello, 1 morning, 2 evening or night, 3 thanks for today's gift, 4 after a refused gift, 5 an old friend, 6 the pet looks hungry, 7 something is ready for them",
        "zh": "说哪句话：0 平常的招呼，1 早上，2 傍晚或夜里，3 谢谢今天的礼物，4 礼物被拒之后，5 老朋友，6 宠物看起来饿了，7 有东西可以交给他们"
-      }
+      },
+      "nameZh": "说哪句"
      }
     ]
    },
@@ -3286,6 +3341,7 @@
   },
   {
    "name": "folk:bolt",
+   "nameZh": "居民问候 · 螺丝",
    "about": {
     "en": "How this resident greets you: their mood and which line they choose, from the time, trust, today's gift, your pet and their quests.",
     "zh": "这位居民怎样跟你打招呼：心情和说哪句话，取决于时间、信任、今天的礼物、你的宠物和他们的任务。"
@@ -3307,7 +3363,8 @@
       "meaning": {
        "en": "time of day: 0 night, 1 morning, 2 day, 3 evening",
        "zh": "一天中的时间：0 夜里，1 早上，2 白天，3 傍晚"
-      }
+      },
+      "nameZh": "时间"
      },
      {
       "name": "trust",
@@ -3316,7 +3373,8 @@
       "meaning": {
        "en": "trust level with this resident (0 to 5)",
        "zh": "和这位居民的信任等级（0 到 5）"
-      }
+      },
+      "nameZh": "信任等级"
      },
      {
       "name": "gift",
@@ -3325,7 +3383,8 @@
       "meaning": {
        "en": "today's gift to them: 0 none, 1 loved or liked, 2 accepted politely, 3 refused",
        "zh": "今天送他们的礼物：0 没送，1 最爱或喜欢，2 礼貌收下，3 被拒收"
-      }
+      },
+      "nameZh": "今天的礼物"
      },
      {
       "name": "petHappy",
@@ -3334,7 +3393,8 @@
       "meaning": {
        "en": "1 when the pet is happy (joy at 600 or more)",
        "zh": "宠物开心（心情 600 及以上）时为 1"
-      }
+      },
+      "nameZh": "宠物开心"
      },
      {
       "name": "petHungry",
@@ -3343,7 +3403,8 @@
       "meaning": {
        "en": "1 when the pet is hungry (food under 300)",
        "zh": "宠物饿了（饱腹 300 以下）时为 1"
-      }
+      },
+      "nameZh": "宠物饿了"
      },
      {
       "name": "questReady",
@@ -3352,7 +3413,8 @@
       "meaning": {
        "en": "1 when a quest of theirs is ready to hand in",
        "zh": "他们的任务可以交时为 1"
-      }
+      },
+      "nameZh": "任务可交"
      }
     ],
     "outputs": [
@@ -3363,7 +3425,8 @@
       "meaning": {
        "en": "mood: 0 low, 1 calm, 2 glad, 3 delighted",
        "zh": "心情：0 低落，1 平静，2 高兴，3 很开心"
-      }
+      },
+      "nameZh": "心情"
      },
      {
       "name": "line",
@@ -3372,7 +3435,8 @@
       "meaning": {
        "en": "which line: 0 their usual hello, 1 morning, 2 evening or night, 3 thanks for today's gift, 4 after a refused gift, 5 an old friend, 6 the pet looks hungry, 7 something is ready for them",
        "zh": "说哪句话：0 平常的招呼，1 早上，2 傍晚或夜里，3 谢谢今天的礼物，4 礼物被拒之后，5 老朋友，6 宠物看起来饿了，7 有东西可以交给他们"
-      }
+      },
+      "nameZh": "说哪句"
      }
     ]
    },
@@ -3765,6 +3829,7 @@
   },
   {
    "name": "folk:flit",
+   "nameZh": "居民问候 · 蝶叔",
    "about": {
     "en": "How this resident greets you: their mood and which line they choose, from the time, trust, today's gift, your pet and their quests.",
     "zh": "这位居民怎样跟你打招呼：心情和说哪句话，取决于时间、信任、今天的礼物、你的宠物和他们的任务。"
@@ -3786,7 +3851,8 @@
       "meaning": {
        "en": "time of day: 0 night, 1 morning, 2 day, 3 evening",
        "zh": "一天中的时间：0 夜里，1 早上，2 白天，3 傍晚"
-      }
+      },
+      "nameZh": "时间"
      },
      {
       "name": "trust",
@@ -3795,7 +3861,8 @@
       "meaning": {
        "en": "trust level with this resident (0 to 5)",
        "zh": "和这位居民的信任等级（0 到 5）"
-      }
+      },
+      "nameZh": "信任等级"
      },
      {
       "name": "gift",
@@ -3804,7 +3871,8 @@
       "meaning": {
        "en": "today's gift to them: 0 none, 1 loved or liked, 2 accepted politely, 3 refused",
        "zh": "今天送他们的礼物：0 没送，1 最爱或喜欢，2 礼貌收下，3 被拒收"
-      }
+      },
+      "nameZh": "今天的礼物"
      },
      {
       "name": "petHappy",
@@ -3813,7 +3881,8 @@
       "meaning": {
        "en": "1 when the pet is happy (joy at 600 or more)",
        "zh": "宠物开心（心情 600 及以上）时为 1"
-      }
+      },
+      "nameZh": "宠物开心"
      },
      {
       "name": "petHungry",
@@ -3822,7 +3891,8 @@
       "meaning": {
        "en": "1 when the pet is hungry (food under 300)",
        "zh": "宠物饿了（饱腹 300 以下）时为 1"
-      }
+      },
+      "nameZh": "宠物饿了"
      },
      {
       "name": "questReady",
@@ -3831,7 +3901,8 @@
       "meaning": {
        "en": "1 when a quest of theirs is ready to hand in",
        "zh": "他们的任务可以交时为 1"
-      }
+      },
+      "nameZh": "任务可交"
      }
     ],
     "outputs": [
@@ -3842,7 +3913,8 @@
       "meaning": {
        "en": "mood: 0 low, 1 calm, 2 glad, 3 delighted",
        "zh": "心情：0 低落，1 平静，2 高兴，3 很开心"
-      }
+      },
+      "nameZh": "心情"
      },
      {
       "name": "line",
@@ -3851,7 +3923,8 @@
       "meaning": {
        "en": "which line: 0 their usual hello, 1 morning, 2 evening or night, 3 thanks for today's gift, 4 after a refused gift, 5 an old friend, 6 the pet looks hungry, 7 something is ready for them",
        "zh": "说哪句话：0 平常的招呼，1 早上，2 傍晚或夜里，3 谢谢今天的礼物，4 礼物被拒之后，5 老朋友，6 宠物看起来饿了，7 有东西可以交给他们"
-      }
+      },
+      "nameZh": "说哪句"
      }
     ]
    },
@@ -4244,6 +4317,7 @@
   },
   {
    "name": "folk:why",
+   "nameZh": "居民问候 · 护士小慧",
    "about": {
     "en": "How this resident greets you: their mood and which line they choose, from the time, trust, today's gift, your pet and their quests.",
     "zh": "这位居民怎样跟你打招呼：心情和说哪句话，取决于时间、信任、今天的礼物、你的宠物和他们的任务。"
@@ -4265,7 +4339,8 @@
       "meaning": {
        "en": "time of day: 0 night, 1 morning, 2 day, 3 evening",
        "zh": "一天中的时间：0 夜里，1 早上，2 白天，3 傍晚"
-      }
+      },
+      "nameZh": "时间"
      },
      {
       "name": "trust",
@@ -4274,7 +4349,8 @@
       "meaning": {
        "en": "trust level with this resident (0 to 5)",
        "zh": "和这位居民的信任等级（0 到 5）"
-      }
+      },
+      "nameZh": "信任等级"
      },
      {
       "name": "gift",
@@ -4283,7 +4359,8 @@
       "meaning": {
        "en": "today's gift to them: 0 none, 1 loved or liked, 2 accepted politely, 3 refused",
        "zh": "今天送他们的礼物：0 没送，1 最爱或喜欢，2 礼貌收下，3 被拒收"
-      }
+      },
+      "nameZh": "今天的礼物"
      },
      {
       "name": "petHappy",
@@ -4292,7 +4369,8 @@
       "meaning": {
        "en": "1 when the pet is happy (joy at 600 or more)",
        "zh": "宠物开心（心情 600 及以上）时为 1"
-      }
+      },
+      "nameZh": "宠物开心"
      },
      {
       "name": "petHungry",
@@ -4301,7 +4379,8 @@
       "meaning": {
        "en": "1 when the pet is hungry (food under 300)",
        "zh": "宠物饿了（饱腹 300 以下）时为 1"
-      }
+      },
+      "nameZh": "宠物饿了"
      },
      {
       "name": "questReady",
@@ -4310,7 +4389,8 @@
       "meaning": {
        "en": "1 when a quest of theirs is ready to hand in",
        "zh": "他们的任务可以交时为 1"
-      }
+      },
+      "nameZh": "任务可交"
      }
     ],
     "outputs": [
@@ -4321,7 +4401,8 @@
       "meaning": {
        "en": "mood: 0 low, 1 calm, 2 glad, 3 delighted",
        "zh": "心情：0 低落，1 平静，2 高兴，3 很开心"
-      }
+      },
+      "nameZh": "心情"
      },
      {
       "name": "line",
@@ -4330,7 +4411,8 @@
       "meaning": {
        "en": "which line: 0 their usual hello, 1 morning, 2 evening or night, 3 thanks for today's gift, 4 after a refused gift, 5 an old friend, 6 the pet looks hungry, 7 something is ready for them",
        "zh": "说哪句话：0 平常的招呼，1 早上，2 傍晚或夜里，3 谢谢今天的礼物，4 礼物被拒之后，5 老朋友，6 宠物看起来饿了，7 有东西可以交给他们"
-      }
+      },
+      "nameZh": "说哪句"
      }
     ]
    },
@@ -4723,6 +4805,7 @@
   },
   {
    "name": "folk:jab",
+   "nameZh": "居民问候 · 阿拳",
    "about": {
     "en": "How this resident greets you: their mood and which line they choose, from the time, trust, today's gift, your pet and their quests.",
     "zh": "这位居民怎样跟你打招呼：心情和说哪句话，取决于时间、信任、今天的礼物、你的宠物和他们的任务。"
@@ -4744,7 +4827,8 @@
       "meaning": {
        "en": "time of day: 0 night, 1 morning, 2 day, 3 evening",
        "zh": "一天中的时间：0 夜里，1 早上，2 白天，3 傍晚"
-      }
+      },
+      "nameZh": "时间"
      },
      {
       "name": "trust",
@@ -4753,7 +4837,8 @@
       "meaning": {
        "en": "trust level with this resident (0 to 5)",
        "zh": "和这位居民的信任等级（0 到 5）"
-      }
+      },
+      "nameZh": "信任等级"
      },
      {
       "name": "gift",
@@ -4762,7 +4847,8 @@
       "meaning": {
        "en": "today's gift to them: 0 none, 1 loved or liked, 2 accepted politely, 3 refused",
        "zh": "今天送他们的礼物：0 没送，1 最爱或喜欢，2 礼貌收下，3 被拒收"
-      }
+      },
+      "nameZh": "今天的礼物"
      },
      {
       "name": "petHappy",
@@ -4771,7 +4857,8 @@
       "meaning": {
        "en": "1 when the pet is happy (joy at 600 or more)",
        "zh": "宠物开心（心情 600 及以上）时为 1"
-      }
+      },
+      "nameZh": "宠物开心"
      },
      {
       "name": "petHungry",
@@ -4780,7 +4867,8 @@
       "meaning": {
        "en": "1 when the pet is hungry (food under 300)",
        "zh": "宠物饿了（饱腹 300 以下）时为 1"
-      }
+      },
+      "nameZh": "宠物饿了"
      },
      {
       "name": "questReady",
@@ -4789,7 +4877,8 @@
       "meaning": {
        "en": "1 when a quest of theirs is ready to hand in",
        "zh": "他们的任务可以交时为 1"
-      }
+      },
+      "nameZh": "任务可交"
      }
     ],
     "outputs": [
@@ -4800,7 +4889,8 @@
       "meaning": {
        "en": "mood: 0 low, 1 calm, 2 glad, 3 delighted",
        "zh": "心情：0 低落，1 平静，2 高兴，3 很开心"
-      }
+      },
+      "nameZh": "心情"
      },
      {
       "name": "line",
@@ -4809,7 +4899,8 @@
       "meaning": {
        "en": "which line: 0 their usual hello, 1 morning, 2 evening or night, 3 thanks for today's gift, 4 after a refused gift, 5 an old friend, 6 the pet looks hungry, 7 something is ready for them",
        "zh": "说哪句话：0 平常的招呼，1 早上，2 傍晚或夜里，3 谢谢今天的礼物，4 礼物被拒之后，5 老朋友，6 宠物看起来饿了，7 有东西可以交给他们"
-      }
+      },
+      "nameZh": "说哪句"
      }
     ]
    },
@@ -5202,6 +5293,7 @@
   },
   {
    "name": "folk:nimbus",
+   "nameZh": "居民问候 · 云朵",
    "about": {
     "en": "How this resident greets you: their mood and which line they choose, from the time, trust, today's gift, your pet and their quests.",
     "zh": "这位居民怎样跟你打招呼：心情和说哪句话，取决于时间、信任、今天的礼物、你的宠物和他们的任务。"
@@ -5223,7 +5315,8 @@
       "meaning": {
        "en": "time of day: 0 night, 1 morning, 2 day, 3 evening",
        "zh": "一天中的时间：0 夜里，1 早上，2 白天，3 傍晚"
-      }
+      },
+      "nameZh": "时间"
      },
      {
       "name": "trust",
@@ -5232,7 +5325,8 @@
       "meaning": {
        "en": "trust level with this resident (0 to 5)",
        "zh": "和这位居民的信任等级（0 到 5）"
-      }
+      },
+      "nameZh": "信任等级"
      },
      {
       "name": "gift",
@@ -5241,7 +5335,8 @@
       "meaning": {
        "en": "today's gift to them: 0 none, 1 loved or liked, 2 accepted politely, 3 refused",
        "zh": "今天送他们的礼物：0 没送，1 最爱或喜欢，2 礼貌收下，3 被拒收"
-      }
+      },
+      "nameZh": "今天的礼物"
      },
      {
       "name": "petHappy",
@@ -5250,7 +5345,8 @@
       "meaning": {
        "en": "1 when the pet is happy (joy at 600 or more)",
        "zh": "宠物开心（心情 600 及以上）时为 1"
-      }
+      },
+      "nameZh": "宠物开心"
      },
      {
       "name": "petHungry",
@@ -5259,7 +5355,8 @@
       "meaning": {
        "en": "1 when the pet is hungry (food under 300)",
        "zh": "宠物饿了（饱腹 300 以下）时为 1"
-      }
+      },
+      "nameZh": "宠物饿了"
      },
      {
       "name": "questReady",
@@ -5268,7 +5365,8 @@
       "meaning": {
        "en": "1 when a quest of theirs is ready to hand in",
        "zh": "他们的任务可以交时为 1"
-      }
+      },
+      "nameZh": "任务可交"
      }
     ],
     "outputs": [
@@ -5279,7 +5377,8 @@
       "meaning": {
        "en": "mood: 0 low, 1 calm, 2 glad, 3 delighted",
        "zh": "心情：0 低落，1 平静，2 高兴，3 很开心"
-      }
+      },
+      "nameZh": "心情"
      },
      {
       "name": "line",
@@ -5288,7 +5387,8 @@
       "meaning": {
        "en": "which line: 0 their usual hello, 1 morning, 2 evening or night, 3 thanks for today's gift, 4 after a refused gift, 5 an old friend, 6 the pet looks hungry, 7 something is ready for them",
        "zh": "说哪句话：0 平常的招呼，1 早上，2 傍晚或夜里，3 谢谢今天的礼物，4 礼物被拒之后，5 老朋友，6 宠物看起来饿了，7 有东西可以交给他们"
-      }
+      },
+      "nameZh": "说哪句"
      }
     ]
    },
@@ -5681,6 +5781,7 @@
   },
   {
    "name": "builder:behemoth",
+   "nameZh": "建造者宠物 · 巨兽",
    "about": {
     "en": "Which of this builder pet's lines it says now, and its mood: by the four-minute slot, the time of day and whether you have met.",
     "zh": "这只建造者宠物现在说哪句话、心情如何：取决于四分钟一格的时段、一天中的时间，以及你们是否见过。"
@@ -5702,7 +5803,8 @@
       "meaning": {
        "en": "the four-minute slot of the day (the same for everyone, so a line is shared by all who visit)",
        "zh": "一天中的四分钟时段（人人相同，所以来访的人听到同一句）"
-      }
+      },
+      "nameZh": "时段"
      },
      {
       "name": "time",
@@ -5711,7 +5813,8 @@
       "meaning": {
        "en": "time of day: 0 night, 1 morning, 2 day, 3 evening",
        "zh": "一天中的时间：0 夜里，1 早上，2 白天，3 傍晚"
-      }
+      },
+      "nameZh": "时间"
      },
      {
       "name": "met",
@@ -5720,7 +5823,8 @@
       "meaning": {
        "en": "1 when you have met it before",
        "zh": "你们见过时为 1"
-      }
+      },
+      "nameZh": "见过"
      }
     ],
     "outputs": [
@@ -5731,7 +5835,8 @@
       "meaning": {
        "en": "mood (0 to 3)",
        "zh": "心情（0 到 3）"
-      }
+      },
+      "nameZh": "心情"
      },
      {
       "name": "line",
@@ -5740,7 +5845,8 @@
       "meaning": {
        "en": "which of its lines it says now",
        "zh": "它现在说的是第几句"
-      }
+      },
+      "nameZh": "说哪句"
      }
     ]
    },
@@ -6133,6 +6239,7 @@
   },
   {
    "name": "builder:mars",
+   "nameZh": "建造者宠物 · 小火星",
    "about": {
     "en": "Which of this builder pet's lines it says now, and its mood: by the four-minute slot, the time of day and whether you have met.",
     "zh": "这只建造者宠物现在说哪句话、心情如何：取决于四分钟一格的时段、一天中的时间，以及你们是否见过。"
@@ -6154,7 +6261,8 @@
       "meaning": {
        "en": "the four-minute slot of the day (the same for everyone, so a line is shared by all who visit)",
        "zh": "一天中的四分钟时段（人人相同，所以来访的人听到同一句）"
-      }
+      },
+      "nameZh": "时段"
      },
      {
       "name": "time",
@@ -6163,7 +6271,8 @@
       "meaning": {
        "en": "time of day: 0 night, 1 morning, 2 day, 3 evening",
        "zh": "一天中的时间：0 夜里，1 早上，2 白天，3 傍晚"
-      }
+      },
+      "nameZh": "时间"
      },
      {
       "name": "met",
@@ -6172,7 +6281,8 @@
       "meaning": {
        "en": "1 when you have met it before",
        "zh": "你们见过时为 1"
-      }
+      },
+      "nameZh": "见过"
      }
     ],
     "outputs": [
@@ -6183,7 +6293,8 @@
       "meaning": {
        "en": "mood (0 to 3)",
        "zh": "心情（0 到 3）"
-      }
+      },
+      "nameZh": "心情"
      },
      {
       "name": "line",
@@ -6192,7 +6303,8 @@
       "meaning": {
        "en": "which of its lines it says now",
        "zh": "它现在说的是第几句"
-      }
+      },
+      "nameZh": "说哪句"
      }
     ]
    },
@@ -6585,6 +6697,7 @@
   },
   {
    "name": "builder:tapboy",
+   "nameZh": "建造者宠物 · 掌机仔",
    "about": {
     "en": "Which of this builder pet's lines it says now, and its mood: by the four-minute slot, the time of day and whether you have met.",
     "zh": "这只建造者宠物现在说哪句话、心情如何：取决于四分钟一格的时段、一天中的时间，以及你们是否见过。"
@@ -6606,7 +6719,8 @@
       "meaning": {
        "en": "the four-minute slot of the day (the same for everyone, so a line is shared by all who visit)",
        "zh": "一天中的四分钟时段（人人相同，所以来访的人听到同一句）"
-      }
+      },
+      "nameZh": "时段"
      },
      {
       "name": "time",
@@ -6615,7 +6729,8 @@
       "meaning": {
        "en": "time of day: 0 night, 1 morning, 2 day, 3 evening",
        "zh": "一天中的时间：0 夜里，1 早上，2 白天，3 傍晚"
-      }
+      },
+      "nameZh": "时间"
      },
      {
       "name": "met",
@@ -6624,7 +6739,8 @@
       "meaning": {
        "en": "1 when you have met it before",
        "zh": "你们见过时为 1"
-      }
+      },
+      "nameZh": "见过"
      }
     ],
     "outputs": [
@@ -6635,7 +6751,8 @@
       "meaning": {
        "en": "mood (0 to 3)",
        "zh": "心情（0 到 3）"
-      }
+      },
+      "nameZh": "心情"
      },
      {
       "name": "line",
@@ -6644,7 +6761,8 @@
       "meaning": {
        "en": "which of its lines it says now",
        "zh": "它现在说的是第几句"
-      }
+      },
+      "nameZh": "说哪句"
      }
     ]
    },
@@ -7037,6 +7155,7 @@
   },
   {
    "name": "builder:builder",
+   "nameZh": "建造者宠物 · 安全帽",
    "about": {
     "en": "Which of this builder pet's lines it says now, and its mood: by the four-minute slot, the time of day and whether you have met.",
     "zh": "这只建造者宠物现在说哪句话、心情如何：取决于四分钟一格的时段、一天中的时间，以及你们是否见过。"
@@ -7058,7 +7177,8 @@
       "meaning": {
        "en": "the four-minute slot of the day (the same for everyone, so a line is shared by all who visit)",
        "zh": "一天中的四分钟时段（人人相同，所以来访的人听到同一句）"
-      }
+      },
+      "nameZh": "时段"
      },
      {
       "name": "time",
@@ -7067,7 +7187,8 @@
       "meaning": {
        "en": "time of day: 0 night, 1 morning, 2 day, 3 evening",
        "zh": "一天中的时间：0 夜里，1 早上，2 白天，3 傍晚"
-      }
+      },
+      "nameZh": "时间"
      },
      {
       "name": "met",
@@ -7076,7 +7197,8 @@
       "meaning": {
        "en": "1 when you have met it before",
        "zh": "你们见过时为 1"
-      }
+      },
+      "nameZh": "见过"
      }
     ],
     "outputs": [
@@ -7087,7 +7209,8 @@
       "meaning": {
        "en": "mood (0 to 3)",
        "zh": "心情（0 到 3）"
-      }
+      },
+      "nameZh": "心情"
      },
      {
       "name": "line",
@@ -7096,7 +7219,8 @@
       "meaning": {
        "en": "which of its lines it says now",
        "zh": "它现在说的是第几句"
-      }
+      },
+      "nameZh": "说哪句"
      }
     ]
    },
@@ -7489,6 +7613,7 @@
   },
   {
    "name": "builder:diver",
+   "nameZh": "建造者宠物 · 潜水员",
    "about": {
     "en": "Which of this builder pet's lines it says now, and its mood: by the four-minute slot, the time of day and whether you have met.",
     "zh": "这只建造者宠物现在说哪句话、心情如何：取决于四分钟一格的时段、一天中的时间，以及你们是否见过。"
@@ -7510,7 +7635,8 @@
       "meaning": {
        "en": "the four-minute slot of the day (the same for everyone, so a line is shared by all who visit)",
        "zh": "一天中的四分钟时段（人人相同，所以来访的人听到同一句）"
-      }
+      },
+      "nameZh": "时段"
      },
      {
       "name": "time",
@@ -7519,7 +7645,8 @@
       "meaning": {
        "en": "time of day: 0 night, 1 morning, 2 day, 3 evening",
        "zh": "一天中的时间：0 夜里，1 早上，2 白天，3 傍晚"
-      }
+      },
+      "nameZh": "时间"
      },
      {
       "name": "met",
@@ -7528,7 +7655,8 @@
       "meaning": {
        "en": "1 when you have met it before",
        "zh": "你们见过时为 1"
-      }
+      },
+      "nameZh": "见过"
      }
     ],
     "outputs": [
@@ -7539,7 +7667,8 @@
       "meaning": {
        "en": "mood (0 to 3)",
        "zh": "心情（0 到 3）"
-      }
+      },
+      "nameZh": "心情"
      },
      {
       "name": "line",
@@ -7548,7 +7677,8 @@
       "meaning": {
        "en": "which of its lines it says now",
        "zh": "它现在说的是第几句"
-      }
+      },
+      "nameZh": "说哪句"
      }
     ]
    },
@@ -7953,28 +8083,36 @@
    "memory": [
     {
      "name": "trust",
+     "nameZh": "信任",
      "label": "How much it trusts you",
+     "labelZh": "它有多信任你",
      "kind": "counter",
      "lo": 0,
      "bits": 3
     },
     {
      "name": "likesToys",
+     "nameZh": "喜欢玩具",
      "label": "Remembers that toys are fun",
+     "labelZh": "记得玩具很好玩",
      "kind": "flag",
      "lo": 3,
      "bits": 1
     },
     {
      "name": "scared",
+     "nameZh": "还在害怕",
      "label": "Still shaken by something scary",
+     "labelZh": "还没从吓人的事里缓过来",
      "kind": "flag",
      "lo": 4,
      "bits": 1
     },
     {
      "name": "awake",
+     "nameZh": "醒了",
      "label": "Beats since its last sleep",
+     "labelZh": "上次睡觉以后过了几拍",
      "kind": "timer",
      "lo": 5,
      "bits": 3
@@ -8382,28 +8520,36 @@
    "memory": [
     {
      "name": "trust",
+     "nameZh": "信任",
      "label": "How much it trusts you",
+     "labelZh": "它有多信任你",
      "kind": "counter",
      "lo": 0,
      "bits": 3
     },
     {
      "name": "likesToys",
+     "nameZh": "喜欢玩具",
      "label": "Remembers that toys are fun",
+     "labelZh": "记得玩具很好玩",
      "kind": "flag",
      "lo": 3,
      "bits": 1
     },
     {
      "name": "scared",
+     "nameZh": "还在害怕",
      "label": "Still shaken by something scary",
+     "labelZh": "还没从吓人的事里缓过来",
      "kind": "flag",
      "lo": 4,
      "bits": 1
     },
     {
      "name": "awake",
+     "nameZh": "醒了",
      "label": "Beats since its last sleep",
+     "labelZh": "上次睡觉以后过了几拍",
      "kind": "timer",
      "lo": 5,
      "bits": 3
@@ -8811,28 +8957,36 @@
    "memory": [
     {
      "name": "trust",
+     "nameZh": "信任",
      "label": "How much it trusts you",
+     "labelZh": "它有多信任你",
      "kind": "counter",
      "lo": 0,
      "bits": 3
     },
     {
      "name": "likesToys",
+     "nameZh": "喜欢玩具",
      "label": "Remembers that toys are fun",
+     "labelZh": "记得玩具很好玩",
      "kind": "flag",
      "lo": 3,
      "bits": 1
     },
     {
      "name": "scared",
+     "nameZh": "还在害怕",
      "label": "Still shaken by something scary",
+     "labelZh": "还没从吓人的事里缓过来",
      "kind": "flag",
      "lo": 4,
      "bits": 1
     },
     {
      "name": "awake",
+     "nameZh": "醒了",
      "label": "Beats since its last sleep",
+     "labelZh": "上次睡觉以后过了几拍",
      "kind": "timer",
      "lo": 5,
      "bits": 3

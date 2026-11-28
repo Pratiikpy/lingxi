@@ -129,6 +129,10 @@
   font-family: var(--round);
   background: var(--tint);
 }
+/* a column's heading is one word: never broken a character a line ("引 / 脚" over the pins at 390) */
+.cx tr:first-child th {
+  white-space: nowrap;
+}
 .cx tr:last-child td {
   border-bottom: 0;
 }

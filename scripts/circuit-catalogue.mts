@@ -27,6 +27,8 @@ import {
   wordToBits,
 } from "@lingxi/brain";
 import { RULES, processorAbi, xLayer, type Deployment } from "@lingxi/chain";
+import { BUILDER_PETS } from "@lingxi/game";
+import { CHARACTERS } from "../packages/world/src/characters";
 import { MOOD_NAMES, VALUE_NAMES, WANT_NAMES } from "../apps/web/src/play/ruleText";
 
 /** Each input pin's name in Chinese, as the game's screens speak of it (C5). */
@@ -40,6 +42,75 @@ const FIELD_ZH: Record<string, string> = {
   event: "身边发生的事",
   owner: "你在不在",
 };
+/**
+ * Each rule's input and answer fields named in Chinese (R75), by the rule's family (the part of its name before a colon),
+ * in the words of each field's own Chinese meaning, so the catalogue page in Chinese reads a run's answer in Chinese.
+ */
+const RULE_FIELD_ZH: Record<string, Record<string, string>> = {
+  drop: {
+    tier: "稀有度",
+    home: "房间相合",
+    exponent: "权重指数",
+    weighted: "有权重",
+    rare: "稀有",
+    familiarity: "熟悉度",
+  },
+  trust: {
+    points: "信任点数",
+    taste: "口味",
+    counted: "今天已算过",
+    level: "信任等级",
+    gain: "加的点数",
+    refused: "被拒收",
+  },
+  skills: { held: "已投入点数", tier: "层", open: "已开放", needs: "需要的点数" },
+  folk: {
+    time: "时间",
+    trust: "信任等级",
+    gift: "今天的礼物",
+    petHappy: "宠物开心",
+    petHungry: "宠物饿了",
+    questReady: "任务可交",
+    mood: "心情",
+    line: "说哪句",
+  },
+  builder: { slot: "时段", time: "时间", met: "见过", mood: "心情", line: "说哪句" },
+};
+/** A rule's own name in Chinese: what it decides, and whose it is for a resident's or a builder pet's (R75). */
+function ruleNameZh(name: string): string {
+  const [family, who] = name.split(":");
+  if (family === "drop") return "找东西";
+  if (family === "trust") return "信任";
+  if (family === "skills") return "技能树";
+  if (family === "folk") {
+    const c = CHARACTERS.find((x) => x.id === who);
+    if (c) return `居民问候 · ${c.name.zh}`;
+  }
+  if (family === "builder") {
+    const b = BUILDER_PETS.find((x) => x.id === who);
+    if (b) return `建造者宠物 · ${b.name.zh}`;
+  }
+  throw new Error(`rule ${name} has no Chinese name: give it one in circuit-catalogue.mts`);
+}
+/** A rule's fields with their Chinese names; a field without one stops the catalogue being written. */
+function fieldsZh(rule: (typeof RULES)[number]) {
+  const family = rule.name.split(":")[0]!;
+  const named = (list: typeof rule.fields.inputs) =>
+    list.map((f) => {
+      const nameZh = RULE_FIELD_ZH[family]?.[f.name];
+      if (!nameZh) throw new Error(`rule ${rule.name}'s field ${f.name} has no Chinese name`);
+      return { ...f, nameZh };
+    });
+  return { inputs: named(rule.fields.inputs), outputs: named(rule.fields.outputs) };
+}
+/** A starter brain's memory in Chinese: the names are the Mind sheet's own (ruleText.ts), the labels said the same way. */
+const MEMORY_ZH: Record<string, { nameZh: string; labelZh: string }> = {
+  trust: { nameZh: "信任", labelZh: "它有多信任你" },
+  likesToys: { nameZh: "喜欢玩具", labelZh: "记得玩具很好玩" },
+  scared: { nameZh: "还在害怕", labelZh: "还没从吓人的事里缓过来" },
+  awake: { nameZh: "醒了", labelZh: "上次睡觉以后过了几拍" },
+};
+
 /** The nudge pin's values in Chinese: "none", then the game's own words for the seven natures (the duel screen's). */
 const NUDGE_ZH = ["没有", "勇敢", "好奇", "嘴馋", "沉稳", "贪玩", "温柔", "害羞"];
 
@@ -93,6 +164,7 @@ const rules = RULES.map((rule) => {
       : spread(rule.inBits, VECTORS_WIDE);
   return {
     name: rule.name,
+    nameZh: ruleNameZh(rule.name),
     about: rule.about,
     id: rec.id,
     tx: rec.tx,
@@ -103,8 +175,9 @@ const rules = RULES.map((rule) => {
     gates: rec.gates,
     netlistBytes: bytes.length,
     netlistKeccak: keccak256(bytes),
-    // what each input and answer bit means (declared beside the rule's reference, so it cannot drift from it)
-    fields: rule.fields,
+    // what each input and answer bit means (declared beside the rule's reference, so it cannot drift from it), each
+    // field with its name in Chinese
+    fields: fieldsZh(rule),
     vectors: inputs.map((i) => [i, rule.reference(i)] as [number, number]),
   };
 });
@@ -148,22 +221,25 @@ const brains = BRAINS.map((line) => {
     netlistBytes: bytes.length,
     netlistKeccak: keccak256(bytes),
     // memory bits in declaration order from bit 0 of the state
-    memory: program.memory.reduce<Array<{ name: string; label?: string; kind: string; lo: number; bits: number }>>(
-      (acc, m) => {
-        const lo = acc.reduce((n, x) => n + x.bits, 0);
-        return [
-          ...acc,
-          {
-            name: m.name,
-            ...(m.label ? { label: m.label } : {}),
-            kind: m.kind,
-            lo,
-            bits: m.kind === "flag" ? 1 : (m as { bits: number }).bits,
-          },
-        ];
-      },
-      [],
-    ),
+    memory: program.memory.reduce<
+      Array<{ name: string; nameZh: string; label?: string; labelZh: string; kind: string; lo: number; bits: number }>
+    >((acc, m) => {
+      const lo = acc.reduce((n, x) => n + x.bits, 0);
+      const zh = MEMORY_ZH[m.name];
+      if (!zh) throw new Error(`brain ${line}'s memory ${m.name} has no Chinese name`);
+      return [
+        ...acc,
+        {
+          name: m.name,
+          nameZh: zh.nameZh,
+          ...(m.label ? { label: m.label } : {}),
+          labelZh: zh.labelZh,
+          kind: m.kind,
+          lo,
+          bits: m.kind === "flag" ? 1 : (m as { bits: number }).bits,
+        },
+      ];
+    }, []),
     stateFromZero: 0,
     vectors,
     // a short life: each beat starts from the memory the last one left, so memory carried between beats is documented too
