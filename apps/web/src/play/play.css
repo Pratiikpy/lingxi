@@ -3358,6 +3358,61 @@ html:has(.sheet) {
   display: grid;
   gap: var(--s3);
 }
+/* R72: the fold in named parts: their list at its top, each part a jump away, a heading and a way back at each */
+.me-parts {
+  display: grid;
+  gap: var(--s5);
+}
+.me-parts-index {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s2);
+  padding: var(--s3);
+  border: 2px dashed var(--track);
+  border-radius: var(--r-md);
+}
+.me-parts-jump {
+  min-height: 44px;
+  padding: 0 var(--s4);
+  border: 2px solid var(--line);
+  border-radius: var(--r-pill);
+  background: var(--card);
+  color: var(--ink);
+  font: 700 14px var(--round);
+  cursor: pointer;
+  box-shadow: var(--lift-lo);
+  transition: transform var(--t-micro) var(--ease);
+}
+.me-parts-jump:hover {
+  background: var(--hover-warm);
+}
+.me-parts-jump:active {
+  transform: translateY(1px);
+}
+.me-part {
+  display: grid;
+  gap: var(--s3);
+}
+.me-part-h {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s3);
+  padding-top: var(--s4);
+  border-top: 2px solid var(--line);
+}
+.me-part-h h3 {
+  margin: 0;
+  font: 800 18px/1.25 var(--round);
+  color: var(--ink);
+}
+/* its own size, whatever other sheet's styles have loaded; a 44 px touch area round it (.btn.small-btn::after) */
+.me-part-back {
+  flex: none;
+  min-height: 36px;
+  padding: 0 12px;
+  font-size: 13px;
+}
 
 /* G3: how much the pet is enjoying the attention, under the care buttons */
 .enjoy {

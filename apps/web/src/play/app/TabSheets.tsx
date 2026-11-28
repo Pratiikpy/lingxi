@@ -15,6 +15,7 @@ import { AlbumPanel } from "../Album";
 import { BadgeShelf } from "../Badges";
 import { Lazy, deferredPanel } from "../Lazy";
 import { MoreBehind } from "../MoreBehind";
+import { MoreParts } from "../MoreParts";
 import { TelegramCard } from "../Move";
 import type { Tab } from "../parts";
 import { SaveFileCard } from "../SaveFile";
@@ -133,73 +134,90 @@ export function TabSheets({
         </Lazy>
         <hr className="divider" />
         <MoreBehind>
-          <SaveFileCard />
-          <TelegramCard />
-          <WardrobePanel pet={pet} />
-          <hr className="divider" />
-          <Lazy>
-            <StudioPanel pet={pet} />
-          </Lazy>
-          <hr className="divider" />
-          <Lazy>
-            <FashionMarketPanel pet={pet} />
-          </Lazy>
-          <hr className="divider" />
-          <Lazy>
-            <ItemShopPanel />
-          </Lazy>
-          <hr className="divider" />
-          <Lazy>
-            <ExtrasPanel pet={pet} />
-          </Lazy>
-          <hr className="divider" />
-          <Lazy>
-            <AdoptionPanel pet={pet} />
-          </Lazy>
-          <hr className="divider" />
-          <Lazy>
-            <FriendsPanel pet={pet} />
-          </Lazy>
-          <hr className="divider" />
-          <NeighboursPanel />
-          <hr className="divider" />
-          <Lazy>
-            <HoldersPanel pet={pet} />
-          </Lazy>
-          <hr className="divider" />
-          <Lazy>
-            <AlbumPanel />
-          </Lazy>
-          <hr className="divider" />
-          <Lazy>
-            <InvitePanel />
-          </Lazy>
-          <hr className="divider" />
-          <Lazy>
-            <SitPanel pet={pet} />
-          </Lazy>
-          <hr className="divider" />
-          <Lazy>
-            <HandheldPanel pet={pet} />
-          </Lazy>
-          <hr className="divider" />
-          <Lazy>
-            <OnChainNote lang={lang} />
-          </Lazy>
-          <hr className="divider" />
-          <Lazy>
-            <SendGiftPanel pet={pet} />
-          </Lazy>
-          <hr className="divider" />
-          <Lazy>
-            <RedPacketPanel pet={pet} />
-          </Lazy>
-          <hr className="divider" />
-          <BadgeShelf />
-          <hr className="divider" />
-          <RemindersPanel pet={pet} />
-          <hr className="divider" />
-          <HomePanel pet={pet} />
+          {/* R72: in named parts, listed at the top, each a jump away; every panel still drawn */}
+          <MoreParts
+            parts={[
+              {
+                id: "style",
+                children: [
+                  <WardrobePanel key="wardrobe" pet={pet} />,
+                  <Lazy key="studio">
+                    <StudioPanel pet={pet} />
+                  </Lazy>,
+                  <Lazy key="fashion">
+                    <FashionMarketPanel pet={pet} />
+                  </Lazy>,
+                ],
+              },
+              {
+                id: "shops",
+                children: [
+                  <Lazy key="items">
+                    <ItemShopPanel />
+                  </Lazy>,
+                  <Lazy key="extras">
+                    <ExtrasPanel pet={pet} />
+                  </Lazy>,
+                ],
+              },
+              {
+                id: "friends",
+                children: [
+                  <Lazy key="friends">
+                    <FriendsPanel pet={pet} />
+                  </Lazy>,
+                  <Lazy key="invite">
+                    <InvitePanel />
+                  </Lazy>,
+                  <Lazy key="sit">
+                    <SitPanel pet={pet} />
+                  </Lazy>,
+                  <Lazy key="gift">
+                    <SendGiftPanel pet={pet} />
+                  </Lazy>,
+                  <Lazy key="packet">
+                    <RedPacketPanel pet={pet} />
+                  </Lazy>,
+                  <Lazy key="adoption">
+                    <AdoptionPanel pet={pet} />
+                  </Lazy>,
+                ],
+              },
+              {
+                id: "neighbours",
+                children: [
+                  <NeighboursPanel key="neighbours" />,
+                  <Lazy key="album">
+                    <AlbumPanel />
+                  </Lazy>,
+                ],
+              },
+              { id: "badges", children: [<BadgeShelf key="badges" />] },
+              {
+                id: "chain",
+                children: [
+                  <HomePanel key="home" pet={pet} />,
+                  <Lazy key="holders">
+                    <HoldersPanel pet={pet} />
+                  </Lazy>,
+                  <Lazy key="note">
+                    <OnChainNote lang={lang} />
+                  </Lazy>,
+                ],
+              },
+              {
+                id: "game",
+                children: [
+                  <SaveFileCard key="save" />,
+                  <TelegramCard key="telegram" />,
+                  <RemindersPanel key="reminders" pet={pet} />,
+                  <Lazy key="handheld">
+                    <HandheldPanel pet={pet} />
+                  </Lazy>,
+                ],
+              },
+            ]}
+          />
         </MoreBehind>
         {/* P6: privacy, terms and a contact, at the foot of the Pet sheet as at the foot of every page */}
         <SiteFoot lang={lang} />
